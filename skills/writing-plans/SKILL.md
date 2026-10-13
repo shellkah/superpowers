@@ -310,8 +310,8 @@ Spec: `<spec path>`
 - `Use superpowers:<subagent-driven-development|executing-plans>. Why this mode: <one sentence>.`
 - Split plans only: `Work on branch <branch from the index>.`
 - Part 1: `Set up the workspace as the skill says.`
-- Parts after part 1: continue on that branch in the worktree the previous part used. First check that part N-1 is complete (its tasks are checked off and its final review passed). If it is not, stop and say so.
-- Every part except the last: `This is not the last part. When the final review passes, report and stop without running superpowers:finishing-a-development-branch; the next part continues on this branch.`
+- Parts after part 1: continue on that branch in the worktree the previous part used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
+- Every part except the last: `This is not the last part. When the final review passes, report and stop without running superpowers:finishing-a-development-branch; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.`
 
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover

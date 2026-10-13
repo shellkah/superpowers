@@ -14,8 +14,13 @@ your report when the work is done. You cannot talk to them while you work.
 
 The work is on branch [BRANCH] in [WORKTREE_PATH]. If the worktree is
 `none`, you run the first part: set up the workspace as the skill says, on
-[BRANCH] unless that is `none` too, and report the branch and worktree you
-used. Otherwise, work in that worktree on that branch.
+a new branch [BRANCH] cut from the commit the main checkout is on now. That
+commit holds the committed spec, and the PR will target the branch it is
+on. If your native worktree tool would branch from anywhere else (Claude
+Code's EnterWorktree branches from origin's default branch unless
+configured otherwise), use the skill's `git worktree add` fallback instead.
+Report the branch and worktree you used. Otherwise, work in that worktree
+on that branch.
 
 Follow the skill the prompt above names, as written. With
 superpowers:subagent-driven-development, you dispatch its implementers and
@@ -40,6 +45,7 @@ Status: DONE | BLOCKED
 Branch: <name>
 Worktree: <path>
 Last commit: <sha>
+Ledger: <path to this plan's progress ledger>
 Blocker: <what blocked you and what you need; BLOCKED only>
 Built: <what this part built>
 Tests: <command and result>

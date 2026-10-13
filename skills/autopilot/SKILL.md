@@ -65,10 +65,10 @@ Before step 1, note the branch you are on. The PR targets it.
    5. **Execute the part.** Dispatch a fresh executor subagent on the most
       capable model available, named explicitly, with `executor-prompt.md`
       in this directory. `[HANDOVER_PROMPT]` is the part's handover prompt,
-      verbatim. `[BRANCH]` is the index's branch for part 1, then the
-      branch the previous executor reported; with no split, `none` (the
-      executor names it). `[WORKTREE_PATH]` is `none` for part 1, then the
-      worktree the previous executor reported.
+      verbatim. `[BRANCH]` is the index's `**Branch:**` for part 1, then
+      the branch the previous executor reported; with no split, the
+      `<feature>` slug from the plan's file name. `[WORKTREE_PATH]` is
+      `none` for part 1, then the worktree the previous executor reported.
    6. **Read the executor's report.** BLOCKED: see Blockers. DONE: keep its
       branch, worktree, and "Rulings I made" for the next part and the
       summary.
@@ -129,8 +129,9 @@ ruling goes in the summary.
 Relay the executor's question to your human partner, with what it needs.
 Wait for the answer. Then continue the same executor with it (SendMessage
 in Claude Code). If it cannot be resumed, dispatch a fresh executor with
-the same handover prompt plus the answer. The ledger lets it pick up where
-the last one stopped.
+the same handover prompt, the branch and worktree from the BLOCKED report,
+and the answer, and point it at the ledger that report names. The ledger
+lets it pick up where the last one stopped.
 
 ## Fallback
 

@@ -79,6 +79,7 @@ tests=(
     "test-executing-plans-scripts.sh"
     "test-subagent-driven-development.sh"
     "test-writing-plans-handover.sh"
+    "test-writing-plans-split.sh"
 )
 
 # Integration tests (slow, full execution)

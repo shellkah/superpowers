@@ -20,6 +20,98 @@ Write implementation plans for an engineer who has not seen this codebase or thi
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
 
+## Splitting the Plan
+
+After reading the spec and before writing any task, sketch the tasks with
+the Task Right-Sizing rules and look at the nature of what is being built.
+Then decide whether to split. Split at natural seams, not at a count:
+
+- A seam is where the tests pass, the work so far is usable on its own, and
+  few interfaces cross it: a subsystem, a layer that stands alone, a
+  milestone a person could try.
+- Tightly related tasks stay in the same part. Ten tasks that build on each
+  other's internals are one part, not 8 + 2.
+- Never leave a stub part of one or two tasks that belongs with its
+  neighbor. Fold it in.
+- Each part depends only on earlier parts.
+
+Around 8 tasks is where splitting starts to pay off. It is a guide, not a
+cap. No natural seam means one plan. A very large plan with no clean seam
+is split at the seam with the fewest crossing interfaces. Make as many
+parts as the seams give.
+
+Decide without asking, and announce the split in one line with the reason:
+"3 parts: storage, sync engine, UI. Each one works on its own." With no
+split, write one plan in this session, as the rest of this skill describes.
+
+**The index.** For a split plan, the main session writes the index itself,
+before any part: `docs/superpowers/plans/YYYY-MM-DD-<feature>-index.md`,
+with exactly these sections:
+
+```markdown
+# <Feature Name> Plan Index
+
+**Goal:** <one sentence>
+**Spec:** `<spec path>`
+**Branch:** `<feature slug>` (every part works on this branch)
+
+## Global Constraints
+<from the spec, one line each, shared by all parts>
+
+## Parts
+
+| Part | Name | Deliverable | Tasks (rough) | Depends on |
+|------|------|-------------|---------------|------------|
+
+## Cross-Part Interfaces
+
+### Part 1 produces
+- `<exact name and signature>`: <what later parts use it for>
+```
+
+Part writers may not change Cross-Part Interfaces. Under autopilot, the
+code earlier parts produced can overrule them: the writer plans against the
+code and reports the difference, and the main session updates the index.
+
+**When parts are written.**
+
+- **Normal mode:** all parts are written up front in this session, in
+  order, so your human partner can review the whole plan before anything
+  runs.
+- **Under autopilot** (superpowers:autopilot is driving): writing-plans
+  writes only the index and returns. Autopilot writes each part just before
+  executing it, so each part is planned against the code the earlier parts
+  produced.
+
+**Writing a part.** Dispatch one fresh subagent per part, on the most
+capable model available, with `part-writer-prompt.md` in this directory.
+Part files go to `docs/superpowers/plans/YYYY-MM-DD-<feature>-part-N-<name>.md`.
+The feature in the name keeps subagent-driven-development workspace slugs
+from colliding. Each part file uses the standard Plan Document Header, plus
+this line directly under the title:
+
+```markdown
+**Part N of M** · Index: `<index path>`
+```
+
+**Cross-part check**, after all parts are written (under autopilot, after
+each part):
+
+- every part's Interfaces blocks match the index's Cross-Part Interfaces;
+- every spec requirement maps to a task in a written part, or, under
+  autopilot, to a later part in the index.
+
+Fix small mismatches yourself. Re-dispatch the writer for a part that is
+badly off.
+
+**Writer questions.** In normal mode, settle what you can and record each
+one as a call you made. Bring the rest to your human partner under "Where
+to focus" in the closing message. Under autopilot, a question only your
+human partner can answer is a blocker for autopilot to ask.
+
+**No subagent tool:** write the parts yourself, one at a time, and re-read
+the index before each one.
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.

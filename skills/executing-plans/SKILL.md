@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when executing an implementation plan in the current session as the implementer yourself — your human partner chose inline execution, or no subagent tool is available
+description: Use when executing an implementation plan in the current session as the implementer yourself — the handover prompt names this skill, your human partner chose inline execution, or no subagent tool is available
 ---
 
 # Executing Plans
@@ -44,8 +44,8 @@ those, stop and ask.
 
 ## When to Use
 
-- You have a plan from superpowers:writing-plans and your human partner
-  chose inline execution at the handoff.
+- You have a plan from superpowers:writing-plans and its handover prompt
+  names this skill, or your human partner chose inline execution.
 - Your harness has no subagent tool (see the per-platform references in
   `../using-superpowers/references/`). Never fabricate a dispatch; run
   the plan here.

@@ -197,8 +197,24 @@ EOF
     echo "$plan_file"
 }
 
+# Run Claude Code with this repo loaded as the superpowers plugin, with the
+# installed official copy disabled so it cannot shadow the fork's skills.
+# Usage: run_claude_fork "prompt text" [timeout_seconds] [extra claude args...]
+run_claude_fork() {
+    local prompt="$1"
+    local timeout="${2:-120}"
+    if [ $# -ge 2 ]; then shift 2; else shift $#; fi
+    local repo_root
+    repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    timeout "$timeout" claude -p "$prompt" \
+        --plugin-dir "$repo_root" \
+        --settings '{"enabledPlugins":{"superpowers@claude-plugins-official":false}}' \
+        "$@" 2>&1
+}
+
 # Export functions for use in tests
 export -f run_claude
+export -f run_claude_fork
 export -f assert_contains
 export -f assert_not_contains
 export -f assert_count

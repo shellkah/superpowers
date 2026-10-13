@@ -56,7 +56,7 @@ independently testable deliverable.
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: the handover prompt names which skill runs this plan, superpowers:subagent-driven-development or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -178,27 +178,71 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Execution Handoff
 
-After saving and self-reviewing the plan, link it for your human partner
-to read. If they have already explicitly supplied an execution method, ask
-them to review the plan and confirm it captures what they want; wait for that
-review before implementation, then use the preserved method. Otherwise, ask
-them to review the plan and choose an execution method before implementation.
+Do not ask your human partner which execution approach to use. You already
+know which one you recommend, so act on it: write a handover prompt for each
+part and hand it over.
 
-**When no execution method has already been supplied:**
+**1. Pick the mode for each part.** After the plan (or every part of it) is
+written and self-reviewed, choose the recommended mode for each part:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Please review the plan. Which execution approach would you prefer?**
+- **superpowers:subagent-driven-development** - A fresh subagent implements each task and a fresh reviewer checks it before the next one starts, then a whole-branch review at the end. Most thorough; costs a fresh context per task and per review.
+- **superpowers:executing-plans** - The executor implements every task itself in its own session, the way this harness runs work, then one fresh reviewer on the most capable model checks the whole branch. Cheapest and fastest; no independent review until the end. Runs well with a mid-tier session model, since the plan carries the design.
 
-- **Subagent-driven** - A fresh subagent implements each task and a fresh reviewer checks it before the next one starts, then a whole-branch review at the end. Most thorough; costs a fresh context per task and per review.
-- **Native** - I implement every task myself in this session, the way this harness runs work, then one fresh reviewer on the most capable model checks the whole branch. Cheapest and fastest; no independent review until the end. Runs well with a mid-tier session model, since the plan carries the design.
+Weigh how much the tasks depend on each other's interfaces, how many there
+are, and what a shipped mistake would cost, and give one sentence of reason.
+A plan with no split is "part 1 of 1". If your human partner already named a
+mode, put that mode in every prompt instead of your recommendation.
 
-**For this plan I recommend <one of the two>, because <one sentence from the plan: how much the tasks depend on each other's interfaces, how many there are, what a shipped mistake would cost>. Does the plan capture what you want, and which approach should we use?"**
+**2. Write every handover prompt to one file**,
+`docs/superpowers/plans/YYYY-MM-DD-<feature>.handover.md`, one section per
+part, in execution order:
 
-**When an execution method has already been supplied:**
+````markdown
+# Handover: <Feature Name>
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Please review the plan. Does it capture what you want?"**
+Spec: `<spec path>`
 
-**If Subagent-driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+## Part 1 of M: <part name>
 
-**If Native chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
+```text
+<the part 1 prompt>
+```
+
+## Part 2 of M: <part name>
+...
+````
+
+**3. What each prompt contains,** in this order:
+
+- `Execute part N of M of the implementation plan at <plan path> (spec: <spec path>).`
+- `Use superpowers:<subagent-driven-development|executing-plans>. Why this mode: <one sentence>.`
+- Split plans only: `Work on branch <branch from the index>.`
+- Part 1: `Set up the workspace as the skill says.`
+- Parts after part 1: continue on that branch in the worktree the previous part used. First check that part N-1 is complete (its tasks are checked off and its final review passed). If it is not, stop and say so.
+- Every part except the last: `This is not the last part. When the final review passes, report and stop without running superpowers:finishing-a-development-branch; the next part continues on this branch.`
+
+**4. End the session with one message** (skip this under autopilot, see
+below): the plan link, a **Where to focus** list, and the part 1 handover
+prompt, laid out like this:
+
+````markdown
+Plan complete: `<plan path or index path>`.
+
+**Where to focus** when you review it:
+1. <2–5 points, most important first: split boundaries, rulings on ambiguity, the Review Focus section, anything the spec left loose, part writers' open questions>
+
+**Handover:** recommended mode <mode>, because <reason>. Paste this into a fresh session once the plan looks right:
+
+```text
+<part 1 prompt>
+```
+
+The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session.
+````
+
+Drop the last line when there is one part. Then wait for your human partner
+to review the plan. Do not start executing it.
+
+**Under autopilot** (superpowers:autopilot is driving), skip the message and
+return control to autopilot. With a split, stop after the index; autopilot
+writes each part and appends its handover prompt as it goes.

@@ -80,6 +80,7 @@ tests=(
     "test-subagent-driven-development.sh"
     "test-writing-plans-handover.sh"
     "test-writing-plans-split.sh"
+    "test-brainstorming-focus.sh"
 )
 
 # Integration tests (slow, full execution)

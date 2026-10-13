@@ -315,7 +315,8 @@ Spec: `<spec path>`
 
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover
-prompt, laid out like this:
+prompt, laid out like this. Keep the bold labels word for word; they are
+how your human partner finds the list and the prompt:
 
 ````markdown
 Plan complete: `<plan path or index path>`.

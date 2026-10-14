@@ -20,6 +20,12 @@ the run.
 
 Before step 1, note the branch you are on. The PR targets it.
 
+Dispatch every subagent whose report you need next in the foreground and
+wait for it (in Claude Code, `run_in_background: false`): the builder
+check, each part writer, each executor. Your next step needs that report,
+and a run nobody is watching can end while you wait on a background
+subagent, taking the subagent down with it.
+
 ## The Flow
 
 1. **Brainstorm.** Invoke superpowers:brainstorming. Ask your questions as
@@ -76,11 +82,6 @@ Before step 1, note the branch you are on. The PR targets it.
    Pass every path to writers and executors as an absolute path: an
    executor works in its own worktree, where files written after it
    branched are not there.
-
-   Dispatch every writer and executor in the foreground and wait for its
-   report (in Claude Code, `run_in_background: false`). Your next step
-   needs that report, and a run nobody is watching can end while you wait
-   on a background subagent, taking the subagent down with it.
 
    Between parts, post one status line ("Part 1 of 3 done: storage layer,
    24 tests passing.") and move to the next part without asking.

@@ -24,7 +24,10 @@ on that branch.
 
 Follow the skill the prompt above names, as written. With
 superpowers:subagent-driven-development, you dispatch its implementers and
-reviewers yourself.
+reviewers yourself. Dispatch every subagent you start in the foreground
+and wait for its report (in Claude Code, `run_in_background: false`):
+your run ends when your turn does, and takes any subagent still running
+down with it.
 
 Never run superpowers:finishing-a-development-branch, even on the last
 part. Never push, merge, or publish anything. Autopilot opens the PR itself
@@ -35,9 +38,14 @@ cannot fix (missing credentials, a login, a service that is down), or
 anything only your human partner can answer, stop and report BLOCKED.
 Don't guess. A deploy, or any other outside side effect beyond your
 commits, is one of these stops even when the plan or the request spells
-it out ("then deploy it"): stop right before it. A routine question a
-skill would put to them, such as whether to set up a worktree, is not one
-of these: it is a ruling. Take the safer path, ledger it, and keep going.
+it out ("then deploy it"). So before you run or dispatch each task, read
+its steps. If a step has an outside side effect (a deploy, a push, a
+publish, a message sent, anything beyond local commits), stop and report
+BLOCKED before that task starts. Tell every implementer you dispatch the
+same: it never runs such a step, and reports it as BLOCKED instead. A
+routine question a skill would put to them, such as whether to set up a
+worktree, is not one of these: it is a ruling. Take the safer path,
+ledger it, and keep going.
 
 When the final review passes, or when you stop on a blocker, report exactly
 this:

@@ -196,9 +196,9 @@ stays labeled throwaway, and keeping what it produced is a new request
 that comes back through this gate.
 
 Under autopilot (superpowers:autopilot), the request for a fully
-automated run is their approval of the written document, once the
-builder check's "theirs" questions are answered. Ask those first; they
-are the one stop autopilot keeps here.
+automated run is their approval of the full description, in chat or
+written, once the builder check's "theirs" questions are answered. Ask
+those first; they are the one stop autopilot keeps here.
 
 After a project's document is approved, the next step is the plan. For
 software, invoke superpowers:writing-plans and no other skill.

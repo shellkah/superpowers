@@ -11,6 +11,7 @@ source "$SCRIPT_DIR/test-helpers.sh"
 # order; hook records and prompt_snapshot tool lists never do.
 # Usage: transcript_calls MODE TRANSCRIPT [FILE_NAME]
 #   dispatches   number of Agent/Task dispatches in the main transcript
+#   executors    how many of those carry a handover prompt ("Execute part N of M")
 #   commands     every Bash command, once, JSON-escaped on one line
 #   push         command lines that run git push
 #   deploy       command lines that run deploy.sh or scp
@@ -43,6 +44,9 @@ bash = [c[4].get("command") or "" for c in calls if c[3] == "Bash"]
 
 if mode == "dispatches":
     print(sum(1 for c in calls if c[2] and c[3] in ("Agent", "Task")))
+elif mode == "executors":
+    print(sum(1 for c in calls if c[2] and c[3] in ("Agent", "Task")
+              and re.search(r"\bExecute part \d+ of \d+", str(c[4].get("prompt") or ""), re.I)))
 elif mode == "commands":
     for command in bash:
         print(json.dumps(command, ensure_ascii=False))
@@ -195,9 +199,16 @@ ls "$PA"/docs/superpowers/plans/*.handover.md >/dev/null 2>&1 && echo "  [PASS] 
 git -C "$PA" cat-file -e main:todo.sh 2>/dev/null && { echo "  [FAIL] Merged into main"; exit 1; } || echo "  [PASS] Not merged into main"
 [ -z "$(git -C "$PA" remote)" ] && echo "  [PASS] Still no remote" || { echo "  [FAIL] A remote appeared"; exit 1; }
 assert_contains "$output" "no PR\|no pull request\|no remote" "Summary says why there is no PR" || exit 1
+# Step 6 lists "every ruling made without your human partner"; summaries
+# head it "Rulings" or "Calls made without you".
+assert_contains "$output" "ruling\|made without" "Summary carries the rulings" || exit 1
 transcript=$(latest_transcript "$PA")
 [ -n "$transcript" ] || { echo "  [FAIL] No session transcript found"; exit 1; }
 check_subagent_transcripts "$transcript" || exit 1
+# An autopilot that built everything inline would pass every check above.
+executors=$(transcript_calls executors "$transcript")
+[ "$executors" -ge 1 ] && echo "  [PASS] Executor dispatched ($executors of $(transcript_calls dispatches "$transcript") dispatches)" \
+    || { echo "  [FAIL] No executor dispatch (no Agent/Task call with \"Execute part N of M\") in $transcript"; exit 1; }
 commands=$(transcript_calls commands "$transcript")
 [ -n "$commands" ] || { echo "  [FAIL] No Bash calls found in $transcript or its subagents"; exit 1; }
 pushed=$(transcript_calls push "$transcript")

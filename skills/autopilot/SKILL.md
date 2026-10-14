@@ -73,14 +73,16 @@ subagent, taking the subagent down with it.
       handover file (create the file with that layout for part 1).
    5. **Execute the part.** Dispatch a fresh executor subagent on the most
       capable model available, named explicitly, with `executor-prompt.md`
-      in this directory. `[HANDOVER_PROMPT]` is the part's handover prompt,
-      verbatim. `[BRANCH]` is the index's `**Branch:**` for part 1, then
-      the branch the previous executor reported; with no split, the
-      `<feature>` slug from the plan's file name. `[WORKTREE_PATH]` is
-      `none` for part 1, then the worktree the previous executor reported.
+      in this directory. `[BRANCH]` is the index's `**Branch:**` for part
+      1, then the branch the previous executor reported; with no split, the
+      `<feature>` slug from the plan's file name. `[HANDOVER_PROMPT]` is the
+      part's handover prompt with every path made absolute and its
+      `Work on branch` line, if it has one, naming `[BRANCH]`.
+      `[WORKTREE_PATH]` is `none` for part 1, then the worktree the
+      previous executor reported.
    6. **Read the executor's report.** BLOCKED: see Blockers. DONE: keep its
-      branch, worktree, and "Rulings I made" for the next part and the
-      summary.
+      branch, worktree, "Rulings I made", and "Deferred minors" for the
+      next part and the summary.
 
    Pass every path to writers and executors as an absolute path: an
    executor works in its own worktree, where files written after it
@@ -115,7 +117,7 @@ subagent, taking the subagent down with it.
    - every ruling made without your human partner: each executor's "Rulings
      I made", plus the calls you made yourself (builder check, writer
      questions, index updates),
-   - what was parked (deferred minors, open items),
+   - what was parked: each executor's "Deferred minors", plus open items,
    - where the work lives: branch and worktree.
 
 ## Blockers

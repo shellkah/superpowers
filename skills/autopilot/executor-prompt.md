@@ -62,5 +62,7 @@ Tests: <command and result>
 Final review: <outcome>
 Rulings I made:
 - <every ruling from the ledger, with what it costs if wrong>
+Deferred minors:
+- <every minor (deferred) line from the ledger>
 ```
 ````

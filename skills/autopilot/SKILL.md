@@ -112,8 +112,13 @@ Before step 1, note the branch you are on. The PR targets it.
 
 ## Blockers
 
-A blocker stops autopilot at any stage. Ask your human partner, wait for
-the answer, then continue from where it stopped. A blocker is:
+A blocker stops autopilot at any stage. Stop there, without going on to
+the PR or the summary, and ask your human partner: say what blocks you,
+and end the message with the question they need to answer ("The
+integration tests need a Stripe test key and none is set. Can you add one
+to `.env`, or should I mock the API?"). Steps for them to follow are not a
+question. Wait for the answer, then continue from where it stopped. A
+blocker is:
 
 - a builder-check question only they can answer,
 - a part writer's open question only they can answer,
@@ -155,6 +160,7 @@ still hold: no finishing-a-development-branch and no push until step 5.
 | "I'll plan all the parts now and save time." | Under autopilot, each part is written after the previous one runs, against the real code. |
 | "The ruling was small, I'll leave it out of the summary." | Every ruling goes in the summary. |
 | "Brainstorming says to invoke autopilot, so I'll invoke it." | Autopilot is already driving. Carry on in brainstorming. |
+| "I'll list the blocker under Parked and wrap up the run." | A blocker isn't parked work. Stop at it and end your message with the question. |
 | "The push was rejected, I'll force it." | Never force. A rejected push is a blocker. |
 | "The executor can push its own part." | Executors never push. Autopilot pushes once, at the end. |
 | "The executor will take a while, so I'll background it and pick up when it reports." | Dispatch it in the foreground and wait. If you end your turn to wait, an unattended run can end with it. |

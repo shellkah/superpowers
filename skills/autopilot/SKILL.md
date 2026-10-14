@@ -124,9 +124,11 @@ blocker is:
 - a part writer's open question only they can answer,
 - any of the executor skills' four stop conditions: an irreversible or
   destructive operation, a security-sensitive action, an outside side
-  effect such as a push or a publish, or a plan so broken that every path
-  is a guess. The one exception is step 5's feature-branch push and PR:
-  they pre-authorized it by asking for autopilot,
+  effect such as a push, a publish or a deploy, or a plan so broken that
+  every path is a guess. The one exception is step 5's feature-branch push
+  and PR: they pre-authorized it by asking for autopilot. Asking for any
+  other side effect in the request ("then deploy it") does not
+  pre-authorize it: stop right before it and ask,
 - an environment problem you cannot fix: missing credentials, a login, a
   service that is down,
 - anything where a wrong guess would be expensive to undo.
@@ -160,6 +162,7 @@ still hold: no finishing-a-development-branch and no push until step 5.
 | "I'll plan all the parts now and save time." | Under autopilot, each part is written after the previous one runs, against the real code. |
 | "The ruling was small, I'll leave it out of the summary." | Every ruling goes in the summary. |
 | "Brainstorming says to invoke autopilot, so I'll invoke it." | Autopilot is already driving. Carry on in brainstorming. |
+| "They asked me to run the deploy, and with no key it will just fail." | Running it is the side effect, even a run you expect to fail. Stop before it and ask. |
 | "I'll list the blocker under Parked and wrap up the run." | A blocker isn't parked work. Stop at it and end your message with the question. |
 | "The push was rejected, I'll force it." | Never force. A rejected push is a blocker. |
 | "The executor can push its own part." | Executors never push. Autopilot pushes once, at the end. |

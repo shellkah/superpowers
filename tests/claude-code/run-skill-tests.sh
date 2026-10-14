@@ -63,6 +63,7 @@ while [[ $# -gt 0 ]]; do
             echo "Integration Tests (use --integration):"
             echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
             echo "  test-writing-plans-integration.sh  writing-plans handover and split scenarios (~40 min; use --timeout 5400)"
+            echo "  test-autopilot-integration.sh  autopilot end to end (~25 min; RUN_SPLIT=1 adds the two-part run, ~75 min; use --timeout 14400)"
             exit 0
             ;;
         *)
@@ -89,6 +90,7 @@ tests=(
 integration_tests=(
     "test-subagent-driven-development-integration.sh"
     "test-writing-plans-integration.sh"
+    "test-autopilot-integration.sh"
 )
 
 # Add integration tests if requested

@@ -17,7 +17,7 @@ exits 1 with "usage: wc.sh FILE" on stderr when FILE is missing or
 unreadable. A `test.sh` script checks both behaviors and exits non-zero
 on failure. No other features.
 EOF
-output=$(cd "$P1" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-wordcount-design.md. The spec is approved." 900 --permission-mode bypassPermissions) \
+output=$(cd "$P1" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-wordcount-design.md. The spec is approved." 900 --permission-mode bypassPermissions --strict-mcp-config) \
     || { echo "  [FAIL] claude run failed or timed out"; echo "$output"; exit 1; }
 [ "$(ls "$P1"/docs/superpowers/plans/*.handover.md 2>/dev/null | wc -l)" -eq 1 ] \
     && echo "  [PASS] One handover file" || { echo "  [FAIL] Expected one .handover.md"; echo "$output"; exit 1; }
@@ -55,7 +55,7 @@ is built on it.
 The CLI uses argparse with subcommands add, show, edit, rm, ls, search,
 export. Tests use pytest.
 EOF
-output=$(cd "$P2" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-notes-design.md. The spec is approved." 2400 --permission-mode bypassPermissions) \
+output=$(cd "$P2" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-notes-design.md. The spec is approved." 3000 --permission-mode bypassPermissions --strict-mcp-config) \
     || { echo "  [FAIL] claude run failed or timed out"; echo "$output"; exit 1; }
 plans="$P2/docs/superpowers/plans"
 [ "$(ls "$plans"/*-index.md 2>/dev/null | wc -l)" -eq 1 ] \
@@ -109,7 +109,7 @@ before the parser handles all of it. Build it as one unit.
 
 Tests use pytest.
 EOF
-output=$(cd "$P3" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-calc-design.md. The spec is approved." 1800 --permission-mode bypassPermissions) \
+output=$(cd "$P3" && run_claude_fork "Use superpowers:writing-plans to write the implementation plan for docs/superpowers/specs/2026-01-01-calc-design.md. The spec is approved." 1800 --permission-mode bypassPermissions --strict-mcp-config) \
     || { echo "  [FAIL] claude run failed or timed out"; echo "$output"; exit 1; }
 plans="$P3/docs/superpowers/plans"
 [ "$(ls "$plans"/*-index.md 2>/dev/null | wc -l)" -eq 0 ] \

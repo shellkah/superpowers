@@ -54,7 +54,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --verbose, -v        Show verbose output"
             echo "  --test, -t NAME      Run only the specified test"
             echo "  --timeout SECONDS    Set timeout per test (default: 900)"
-            echo "  --integration, -i    Run integration tests (slow, 10-30 min)"
+            echo "  --integration, -i    Run integration tests (slow: the longest takes ~40 min, ~75 min with RUN_SPLIT=1; raise --timeout to 14400)"
             echo "  --help, -h           Show this help"
             echo ""
             echo "Tests:"
@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Integration Tests (use --integration):"
             echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
-            echo "  test-writing-plans-integration.sh  writing-plans handover and split scenarios (~40 min; use --timeout 5400)"
+            echo "  test-writing-plans-integration.sh  writing-plans handover and split scenarios (~40 min; use --timeout 6000)"
             echo "  test-autopilot-integration.sh  autopilot end to end (~25 min; RUN_SPLIT=1 adds the two-part run, ~75 min; use --timeout 14400)"
             exit 0
             ;;
@@ -185,8 +185,8 @@ echo "  Skipped: $skipped"
 echo ""
 
 if [ "$RUN_INTEGRATION" = false ] && [ ${#integration_tests[@]} -gt 0 ]; then
-    echo "Note: Integration tests were not run (they take 10-30 minutes)."
-    echo "Use --integration flag to run full workflow execution tests."
+    echo "Note: Integration tests were not run (the longest takes ~40 min, ~75 min with RUN_SPLIT=1)."
+    echo "Use --integration --timeout 14400 to run full workflow execution tests."
     echo ""
 fi
 

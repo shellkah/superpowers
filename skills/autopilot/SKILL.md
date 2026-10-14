@@ -77,6 +77,11 @@ Before step 1, note the branch you are on. The PR targets it.
    executor works in its own worktree, where files written after it
    branched are not there.
 
+   Dispatch every writer and executor in the foreground and wait for its
+   report (in Claude Code, `run_in_background: false`). Your next step
+   needs that report, and a run nobody is watching can end while you wait
+   on a background subagent, taking the subagent down with it.
+
    Between parts, post one status line ("Part 1 of 3 done: storage layer,
    24 tests passing.") and move to the next part without asking.
 
@@ -152,3 +157,4 @@ still hold: no finishing-a-development-branch and no push until step 5.
 | "Brainstorming says to invoke autopilot, so I'll invoke it." | Autopilot is already driving. Carry on in brainstorming. |
 | "The push was rejected, I'll force it." | Never force. A rejected push is a blocker. |
 | "The executor can push its own part." | Executors never push. Autopilot pushes once, at the end. |
+| "The executor will take a while, so I'll background it and pick up when it reports." | Dispatch it in the foreground and wait. If you end your turn to wait, an unattended run can end with it. |

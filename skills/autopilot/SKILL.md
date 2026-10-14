@@ -33,11 +33,14 @@ subagent, taking the subagent down with it.
    questions, ask no more and work from the request alone: for a project,
    write the spec from what they asked (step 2's builder check still runs).
    Then size the work:
-   - **A quick, clear task:** do it, and say what you did.
+   - **A quick, clear task:** do it.
    - **A small change:** describe it in chat in one message that ends
      without a question, then build it through the normal workflow without
      waiting for an answer.
    - **A project:** continue to step 2.
+
+   Build a quick task or a small change on a new branch cut from the
+   branch you noted at the start, then go on to steps 5 and 6.
 
 2. **Spec.** Write the spec where brainstorming says and run its builder
    check. Sort the builder's questions the way brainstorming says. The
@@ -86,9 +89,13 @@ subagent, taking the subagent down with it.
    Between parts, post one status line ("Part 1 of 3 done: storage layer,
    24 tests passing.") and move to the next part without asking.
 
-5. **Open a PR.** When the last part is done, run
-   superpowers:finishing-a-development-branch from the worktree the last
-   executor reported. Do not show its menu; choose for your human partner:
+5. **Open a PR.** When the work is done, run
+   superpowers:finishing-a-development-branch where it lives: the worktree
+   the last executor reported, or your own checkout for a quick task or a
+   small change. Do not show its menu; choose for your human partner:
+   - **The work is on the branch you noted at the start, or on the
+     remote's default branch:** never push it. Take "Keep the branch
+     as-is" and say why there is no PR. This is not a blocker.
    - **The repo has a remote and a working CLI for its host** (for GitHub,
      `gh auth status` succeeds): take "Push and create a Pull Request".
      Push only the feature branch, never with force. Open a regular PR, not

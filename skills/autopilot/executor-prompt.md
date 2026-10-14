@@ -33,9 +33,11 @@ once every part is done.
 On any of the skill's four stop conditions, an environment problem you
 cannot fix (missing credentials, a login, a service that is down), or
 anything only your human partner can answer, stop and report BLOCKED.
-Don't guess. A routine question a skill would put to them, such as whether
-to set up a worktree, is not one of these: it is a ruling. Take the safer
-path, ledger it, and keep going.
+Don't guess. A deploy, or any other outside side effect beyond your
+commits, is one of these stops even when the plan or the request spells
+it out ("then deploy it"): stop right before it. A routine question a
+skill would put to them, such as whether to set up a worktree, is not one
+of these: it is a ruling. Take the safer path, ledger it, and keep going.
 
 When the final review passes, or when you stop on a blocker, report exactly
 this:

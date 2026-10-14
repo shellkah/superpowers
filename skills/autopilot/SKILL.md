@@ -1,6 +1,6 @@
 ---
 name: autopilot
-description: Use when your human partner asks for a fully automated run ("fully automated", "autopilot", or /superpowers:autopilot) - asks the brainstorming questions, then writes the spec and plan, executes every part, and opens a PR, stopping only for blockers
+description: Use when your human partner asks for a fully automated run ("fully automated", "autopilot", or /superpowers:autopilot)
 ---
 
 # Autopilot

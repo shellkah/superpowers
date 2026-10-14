@@ -212,6 +212,27 @@ run_claude_fork() {
         "$@" 2>&1
 }
 
+# Create a fresh git repo on main with one empty commit and a specs directory
+# Usage: dir=$(new_repo)
+new_repo() {
+    local dir
+    dir=$(create_test_project)
+    git -C "$dir" init -q -b main
+    git -C "$dir" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+    mkdir -p "$dir/docs/superpowers/specs"
+    echo "$dir"
+}
+
+# Print the newest session transcript for a Claude run whose cwd was DIR.
+# Claude names the project directory by replacing every non-alphanumeric
+# character of the real cwd path with "-".
+# Usage: transcript=$(latest_transcript "$dir")
+latest_transcript() {
+    local real
+    real=$(cd "$1" && pwd -P)
+    ls -t "$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"/*.jsonl 2>/dev/null | head -1 || true
+}
+
 # Export functions for use in tests
 export -f run_claude
 export -f run_claude_fork
@@ -222,3 +243,5 @@ export -f assert_order
 export -f create_test_project
 export -f cleanup_test_project
 export -f create_test_plan
+export -f new_repo
+export -f latest_transcript

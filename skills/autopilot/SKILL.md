@@ -57,8 +57,8 @@ subagent, taking the subagent down with it.
 4. **Write, then execute, one part at a time.** With no split, the plan and
    its handover prompt already exist: skip to sub-step 5, the executor.
    With a split, for each part in order:
-   1. **Write the part.** Dispatch a fresh subagent on the most capable
-      model available with `../writing-plans/part-writer-prompt.md`. Fill
+   1. **Write the part.** Dispatch a fresh subagent with
+      `../writing-plans/part-writer-prompt.md`, on the model it names. Fill
       every placeholder. `[EARLIER_PART_PATHS]` is the part files written
       so far (`none` for part 1). `[WORKTREE_PATH]` is the worktree the
       previous executor reported (`none` for part 1).
@@ -71,10 +71,10 @@ subagent, taking the subagent down with it.
    4. **Write its handover prompt.** Pick the part's mode and write its
       prompt as writing-plans' Execution Handoff says, then append it to the
       handover file (create the file with that layout for part 1).
-   5. **Execute the part.** Dispatch a fresh executor subagent on the most
-      capable model available, named explicitly, with `executor-prompt.md`
-      in this directory. `[BRANCH]` is the index's `**Branch:**` for part
-      1, then the branch the previous executor reported; with no split, the
+   5. **Execute the part.** Dispatch a fresh executor subagent with
+      `executor-prompt.md` in this directory, on the model it names.
+      `[BRANCH]` is the index's `**Branch:**` for part 1, then the branch
+      the previous executor reported; with no split, the
       `<feature>` slug from the plan's file name. `[HANDOVER_PROMPT]` is the
       part's handover prompt with every path made absolute and its
       `Work on branch` line, if it has one, naming `[BRANCH]`.

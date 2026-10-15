@@ -83,8 +83,8 @@ code and reports the difference, and the main session updates the index.
   executing it, so each part is planned against the code the earlier parts
   produced.
 
-**Writing a part.** Dispatch one fresh subagent per part, on the most
-capable model available, with `part-writer-prompt.md` in this directory.
+**Writing a part.** Dispatch one fresh subagent per part with
+`part-writer-prompt.md` in this directory, on the model it names.
 Part files go to `docs/superpowers/plans/YYYY-MM-DD-<feature>-part-N-<name>.md`.
 The feature in the name keeps subagent-driven-development workspace slugs
 from colliding. Each part file uses the standard Plan Document Header, plus

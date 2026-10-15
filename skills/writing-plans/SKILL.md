@@ -20,6 +20,98 @@ Write implementation plans for an engineer who has not seen this codebase or thi
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
 
+## Splitting the Plan
+
+After reading the spec and before writing any task, sketch the tasks with
+the Task Right-Sizing rules and look at the nature of what is being built.
+Then decide whether to split. Split at natural seams, not at a count:
+
+- A seam is where the tests pass, the work so far is usable on its own, and
+  few interfaces cross it: a subsystem, a layer that stands alone, a
+  milestone a person could try.
+- Tightly related tasks stay in the same part. Ten tasks that build on each
+  other's internals are one part, not 8 + 2.
+- Never leave a stub part of one or two tasks that belongs with its
+  neighbor. Fold it in.
+- Each part depends only on earlier parts.
+
+Around 8 tasks is where splitting starts to pay off. It is a guide, not a
+cap. No natural seam means one plan. A very large plan with no clean seam
+is split at the seam with the fewest crossing interfaces. Make as many
+parts as the seams give.
+
+Decide without asking, and announce the split in one line with the reason:
+"3 parts: storage, sync engine, UI. Each one works on its own." With no
+split, write one plan in this session, as the rest of this skill describes.
+
+**The index.** For a split plan, the main session writes the index itself,
+before any part: `docs/superpowers/plans/YYYY-MM-DD-<feature>-index.md`,
+with exactly these sections:
+
+```markdown
+# <Feature Name> Plan Index
+
+**Goal:** <one sentence>
+**Spec:** `<spec path>`
+**Branch:** `<feature slug>` (every part works on this branch)
+
+## Global Constraints
+<from the spec, one line each, shared by all parts>
+
+## Parts
+
+| Part | Name | Deliverable | Tasks (rough) | Depends on |
+|------|------|-------------|---------------|------------|
+
+## Cross-Part Interfaces
+
+### Part 1 produces
+- `<exact name and signature>`: <what later parts use it for>
+```
+
+Part writers may not change Cross-Part Interfaces. Under autopilot, the
+code earlier parts produced can overrule them: the writer plans against the
+code and reports the difference, and the main session updates the index.
+
+**When parts are written.**
+
+- **Normal mode:** all parts are written up front in this session, in
+  order, so your human partner can review the whole plan before anything
+  runs.
+- **Under autopilot** (superpowers:autopilot is driving): writing-plans
+  writes only the index and returns. Autopilot writes each part just before
+  executing it, so each part is planned against the code the earlier parts
+  produced.
+
+**Writing a part.** Dispatch one fresh subagent per part, on the most
+capable model available, with `part-writer-prompt.md` in this directory.
+Part files go to `docs/superpowers/plans/YYYY-MM-DD-<feature>-part-N-<name>.md`.
+The feature in the name keeps subagent-driven-development workspace slugs
+from colliding. Each part file uses the standard Plan Document Header, plus
+this line directly under the title:
+
+```markdown
+**Part N of M** · Index: `<index path>`
+```
+
+**Cross-part check**, after all parts are written (under autopilot, after
+each part):
+
+- every part's Interfaces blocks match the index's Cross-Part Interfaces;
+- every spec requirement maps to a task in a written part, or, under
+  autopilot, to a later part in the index.
+
+Fix small mismatches yourself. Re-dispatch the writer for a part that is
+badly off.
+
+**Writer questions.** In normal mode, settle what you can and record each
+one as a call you made. Bring the rest to your human partner under "Where
+to focus" in the closing message. Under autopilot, a question only your
+human partner can answer is a blocker for autopilot to ask.
+
+**No subagent tool:** write the parts yourself, one at a time, and re-read
+the index before each one.
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
@@ -56,7 +148,7 @@ independently testable deliverable.
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: the handover prompt names which skill runs this plan, superpowers:subagent-driven-development or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -178,27 +270,72 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Execution Handoff
 
-After saving and self-reviewing the plan, link it for your human partner
-to read. If they have already explicitly supplied an execution method, ask
-them to review the plan and confirm it captures what they want; wait for that
-review before implementation, then use the preserved method. Otherwise, ask
-them to review the plan and choose an execution method before implementation.
+Do not ask your human partner which execution approach to use. You already
+know which one you recommend, so act on it: write a handover prompt for each
+part and hand it over.
 
-**When no execution method has already been supplied:**
+**1. Pick the mode for each part.** After the plan (or every part of it) is
+written and self-reviewed, choose the recommended mode for each part:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Please review the plan. Which execution approach would you prefer?**
+- **superpowers:subagent-driven-development** - A fresh subagent implements each task and a fresh reviewer checks it before the next one starts, then a whole-branch review at the end. Most thorough; costs a fresh context per task and per review.
+- **superpowers:executing-plans** - The executor implements every task itself in its own session, the way this harness runs work, then one fresh reviewer on the most capable model checks the whole branch. Cheapest and fastest; no independent review until the end. Runs well with a mid-tier session model, since the plan carries the design.
 
-- **Subagent-driven** - A fresh subagent implements each task and a fresh reviewer checks it before the next one starts, then a whole-branch review at the end. Most thorough; costs a fresh context per task and per review.
-- **Native** - I implement every task myself in this session, the way this harness runs work, then one fresh reviewer on the most capable model checks the whole branch. Cheapest and fastest; no independent review until the end. Runs well with a mid-tier session model, since the plan carries the design.
+Weigh how much the tasks depend on each other's interfaces, how many there
+are, and what a shipped mistake would cost, and give one sentence of reason.
+A plan with no split is "part 1 of 1". If your human partner already named a
+mode, put that mode in every prompt instead of your recommendation.
 
-**For this plan I recommend <one of the two>, because <one sentence from the plan: how much the tasks depend on each other's interfaces, how many there are, what a shipped mistake would cost>. Does the plan capture what you want, and which approach should we use?"**
+**2. Write every handover prompt to one file**,
+`docs/superpowers/plans/YYYY-MM-DD-<feature>.handover.md`, one section per
+part, in execution order:
 
-**When an execution method has already been supplied:**
+````markdown
+# Handover: <Feature Name>
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Please review the plan. Does it capture what you want?"**
+Spec: `<spec path>`
 
-**If Subagent-driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+## Part 1 of M: <part name>
 
-**If Native chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
+```text
+<the part 1 prompt>
+```
+
+## Part 2 of M: <part name>
+...
+````
+
+**3. What each prompt contains,** in this order:
+
+- `Execute part N of M of the implementation plan at <plan path> (spec: <spec path>).`
+- `Use superpowers:<subagent-driven-development|executing-plans>. Why this mode: <one sentence>.`
+- Split plans only: `Work on branch <branch from the index>.`
+- Part 1: `Set up the workspace as the skill says.`
+- Parts after part 1: continue on that branch in the worktree the previous part used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
+- Every part except the last: `This is not the last part. When the final review passes, report and stop without running superpowers:finishing-a-development-branch; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.`
+
+**4. End the session with one message** (skip this under autopilot, see
+below): the plan link, a **Where to focus** list, and the part 1 handover
+prompt, laid out like this. Keep the bold labels word for word; they are
+how your human partner finds the list and the prompt:
+
+````markdown
+Plan complete: `<plan path or index path>`.
+
+**Where to focus** when you review it:
+1. <2–5 points, most important first: split boundaries, rulings on ambiguity, the Review Focus section, anything the spec left loose, part writers' open questions>
+
+**Handover:** recommended mode <mode>, because <reason>. Paste this into a fresh session once the plan looks right:
+
+```text
+<part 1 prompt>
+```
+
+The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session.
+````
+
+Drop the last line when there is one part. Then wait for your human partner
+to review the plan. Do not start executing it.
+
+**Under autopilot** (superpowers:autopilot is driving), skip the message and
+return control to autopilot. With a split, stop after the index; autopilot
+writes each part and appends its handover prompt as it goes.

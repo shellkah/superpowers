@@ -311,7 +311,7 @@ Restart any active Muse sessions after installing so the `SessionStart` hook tak
 
 2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps. Big plans are split into parts at natural seams, each written by a fresh subagent. It ends with a paste-ready handover prompt for the next session that names the recommended execution skill.
 
 4. **subagent-driven-development** or **executing-plans** - Activates with plan. Either dispatches a fresh subagent per task with a review after each (most thorough), or implements every task inline in the current session with one fresh review of the whole branch at the end (cheapest).
 
@@ -352,6 +352,7 @@ Superpowers is built by [Jesse Vincent](https://blog.fsck.com) and the rest of t
 **Collaboration** 
 - **brainstorming** - Drawing out intent before building
 - **writing-plans** - Detailed implementation plans
+- **autopilot** - Fully automated runs: questions first, then spec, plan, execution part by part, and an open PR
 - **executing-plans** - Inline plan execution: one context, one final review
 - **dispatching-parallel-agents** - Concurrent subagent workflows
 - **requesting-code-review** - Pre-review checklist

@@ -23,6 +23,11 @@ why?
   blue"). This is a quick, clear task. Do it, and say what you did.
 - **Something non-trivial is missing.** Start the conversation.
 
+**Fully automated?** If they asked for a fully automated run ("fully
+automated", "autopilot") and superpowers:autopilot isn't driving yet,
+invoke it now; it brings you back here. Under autopilot, ask your
+questions as usual but skip the playback chunks.
+
 ## Your First Message
 
 Your first message is two things, in this order:
@@ -171,9 +176,11 @@ until the check is back. Sort what the builder asks into three piles:
   what gets built.
 
 Bring the "theirs" pile in one message, most important first. Update the
-document with their answers, then hand it over with a short list of the
-calls you made so they can check those while reading. That's the only
-round of questions the check produces. Without a subagent tool, read the
+document with their answers, then hand it over with a **Where to focus**
+list: the calls you made and the places where a misreading would cost the
+most, most important first, at most five items. Ask for one review of the
+whole document, not approval section by section. That's the only round of
+questions the check produces. Without a subagent tool, read the
 document as that builder yourself.
 
 <HARD-GATE>
@@ -183,10 +190,15 @@ Building includes writing product code, scaffolding, installing
 dependencies, creating projects, and invoking an implementation skill.
 Reading and exploring are fine.
 
-Two exceptions. If they opted out of the questions, the skill is done
+Three exceptions. If they opted out of the questions, the skill is done
 and the gate goes with it. A spike they said yes to may be built; it
 stays labeled throwaway, and keeping what it produced is a new request
 that comes back through this gate.
+
+Under autopilot (superpowers:autopilot), the request for a fully
+automated run is their approval of the full description, in chat or
+written, once the builder check's "theirs" questions are answered. Ask
+those first; they are the one stop autopilot keeps here.
 
 After a project's document is approved, the next step is the plan. For
 software, invoke superpowers:writing-plans and no other skill.

@@ -197,8 +197,45 @@ EOF
     echo "$plan_file"
 }
 
+# Run Claude Code with this repo loaded as the superpowers plugin, with the
+# installed official copy disabled so it cannot shadow the fork's skills.
+# Usage: run_claude_fork "prompt text" [timeout_seconds] [extra claude args...]
+run_claude_fork() {
+    local prompt="$1"
+    local timeout="${2:-120}"
+    if [ $# -ge 2 ]; then shift 2; else shift $#; fi
+    local repo_root
+    repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    timeout "$timeout" claude -p "$prompt" \
+        --plugin-dir "$repo_root" \
+        --settings '{"enabledPlugins":{"superpowers@claude-plugins-official":false}}' \
+        "$@" 2>&1
+}
+
+# Create a fresh git repo on main with one empty commit and a specs directory
+# Usage: dir=$(new_repo)
+new_repo() {
+    local dir
+    dir=$(create_test_project)
+    git -C "$dir" init -q -b main
+    git -C "$dir" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+    mkdir -p "$dir/docs/superpowers/specs"
+    echo "$dir"
+}
+
+# Print the newest session transcript for a Claude run whose cwd was DIR.
+# Claude names the project directory by replacing every non-alphanumeric
+# character of the real cwd path with "-".
+# Usage: transcript=$(latest_transcript "$dir")
+latest_transcript() {
+    local real
+    real=$(cd "$1" && pwd -P)
+    ls -t "$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"/*.jsonl 2>/dev/null | head -1 || true
+}
+
 # Export functions for use in tests
 export -f run_claude
+export -f run_claude_fork
 export -f assert_contains
 export -f assert_not_contains
 export -f assert_count
@@ -206,3 +243,5 @@ export -f assert_order
 export -f create_test_project
 export -f cleanup_test_project
 export -f create_test_plan
+export -f new_repo
+export -f latest_transcript

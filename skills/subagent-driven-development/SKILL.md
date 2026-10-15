@@ -36,17 +36,17 @@ stop and ask.
 digraph when_to_use {
     "Have implementation plan?" [shape=diamond];
     "Tasks mostly independent?" [shape=diamond];
-    "Partner chose inline, or no subagent tool?" [shape=diamond];
+    "Handover names executing-plans, partner chose inline, or no subagent tool?" [shape=diamond];
     "subagent-driven-development" [shape=box];
     "executing-plans" [shape=box];
     "Manual execution or brainstorm first" [shape=box];
 
     "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
     "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
-    "Tasks mostly independent?" -> "Partner chose inline, or no subagent tool?" [label="yes"];
+    "Tasks mostly independent?" -> "Handover names executing-plans, partner chose inline, or no subagent tool?" [label="yes"];
     "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
-    "Partner chose inline, or no subagent tool?" -> "executing-plans" [label="yes"];
-    "Partner chose inline, or no subagent tool?" -> "subagent-driven-development" [label="no"];
+    "Handover names executing-plans, partner chose inline, or no subagent tool?" -> "executing-plans" [label="yes"];
+    "Handover names executing-plans, partner chose inline, or no subagent tool?" -> "subagent-driven-development" [label="no"];
 }
 ```
 

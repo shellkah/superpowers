@@ -149,8 +149,9 @@ part:
 - **cross-part interfaces**: the exact names, signatures, and types each
   part produces for later parts. Writers may not change these.
 
-**Writing the parts.** One fresh writer subagent writes each part, on the
-most capable model available, using a new prompt template,
+**Writing the parts.** One fresh writer subagent writes each part, one
+tier below the most capable model (the most capable only for a very
+intensive or critical part), using a new prompt template,
 `skills/writing-plans/part-writer-prompt.md`. When the parts get written
 depends on the mode:
 
@@ -245,8 +246,10 @@ when your human partner asks for a "fully automated" run (or says
       earlier parts produced. Run the cross-part check, update the index
       if the code changed an interface, and append the part's handover
       prompt to the handover file.
-   2. Dispatch a fresh executor subagent on the most capable model
-      available.
+   2. Dispatch a fresh executor subagent on a model picked by the part:
+      mid-tier by default, one tier up when the part leaves real judgment
+      to the executor, the most capable only for a very intensive or
+      critical part.
 
    The executor's prompt is the part's handover prompt plus an autopilot
    block (new template: `skills/autopilot/executor-prompt.md`):

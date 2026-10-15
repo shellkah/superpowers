@@ -1,8 +1,14 @@
 # Part Writer Prompt
 
-Dispatch a fresh subagent on the most capable model available with this
-prompt, once per part of a split plan, after the index is written. Fill in
-every bracketed placeholder.
+Dispatch a fresh subagent with this prompt, once per part of a split plan,
+after the index is written. Fill in every bracketed placeholder.
+
+Name the writer's model explicitly; an omitted model inherits the session's:
+- **One tier below the most capable** (Opus in Claude Code) by default. It
+  plans a part well from the spec and the index, and a small part gains
+  nothing from the top tier.
+- **The most capable model** (Fable) only for a very intensive or critical
+  part, such as security, data migrations, or payments.
 
 ````
 You are writing one part of a split implementation plan. You will not be

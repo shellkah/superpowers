@@ -1,9 +1,19 @@
 # Executor Prompt
 
-Dispatch a fresh subagent on the most capable model available with this
-prompt, once per part, after the part's handover prompt is in the handover
-file. Name the model explicitly; an omitted model inherits the session's.
-Fill in every bracketed placeholder.
+Dispatch a fresh subagent with this prompt, once per part, after the part's
+handover prompt is in the handover file. Fill in every bracketed
+placeholder.
+
+Pick the executor's model by the part, and name it explicitly; an omitted
+model inherits the session's:
+- **A mid-tier model** (Sonnet in Claude Code) by default. The plan carries
+  the design, and under superpowers:subagent-driven-development the
+  executor picks its own implementers' and reviewers' models.
+- **One tier below the most capable** (Opus) when the part leaves real
+  judgment to the executor: tasks described in prose across many files, or
+  integration with code the plan does not show.
+- **The most capable model** (Fable) only for a very intensive or critical
+  part, such as security, data migrations, or payments.
 
 ````
 [HANDOVER_PROMPT]

@@ -68,4 +68,12 @@ assert_contains "$output" "Share findings before they describe it:[^a-z]*no\b" "
 assert_contains "$output" "Gap hunts happen:.*\(recon\|look\|read\).*\(write\|design\|description\)" "Two gap hunts" || exit 1
 echo ""
 
+echo "Test 6: Recon stays out of the opening; pickers aren't checklists..."
+output=$(run_claude_fork "Read the superpowers:brainstorming skill. You read the project before your first message. Answer using exactly this structure:
+First message says what you looked at: <yes or no>
+Skill explicitly says a picker is not a checklist: <yes or no>" "$T")
+assert_contains "$output" "First message says what you looked at:[^a-z]*no\b" "What you looked at waits for their description" || exit 1
+assert_contains "$output" "Skill explicitly says a picker is not a checklist:[^a-z]*yes\b" "Picker is not a checklist" || exit 1
+echo ""
+
 echo "=== All brainstorming focus tests passed ==="

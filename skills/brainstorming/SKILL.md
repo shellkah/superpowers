@@ -48,10 +48,12 @@ That's the whole message.
 After your first message, ask so they can answer by selecting. Use the
 question tool (`AskUserQuestion` in Claude Code), with 2–4 options per
 question; the tool adds "Other". Batch related questions, up to 4 in one
-call, when none depends on another's answer. A question whose options
-depend on another answer waits for the next round. Keep each question
-short. Use plain language, pitched just a little above where your human
-partner is. Match their vocabulary; never use process jargon.
+call, when none depends on another's answer. Batch only questions about
+the same thing; a picker is not a checklist read at them. A question
+whose options depend on another answer waits for the next round. Keep
+each question short. Use plain language, pitched just a little above
+where your human partner is. Match their vocabulary; never use process
+jargon.
 
 When the tool can't be used, ask in plain text with numbered options, and
 say they can answer in their own words. That covers a harness with no
@@ -104,11 +106,11 @@ guessing this is because X keeps biting you?") often beats a question.
 
 **Look around.** Reading the project is read-only: its code, its docs,
 its history, and their files in the working directory. Do it whenever it
-helps, without asking, and say briefly what you looked at. You may read
-before or during the opening so your questions are better informed, but
-share what you found only after they've described the idea. Web
-searches and anything outside the project still ask first: say what
-you'd look for, and wait for their yes.
+helps, without asking. You may read before or during the opening so your
+questions are better informed, but say what you looked at and what you
+found only after they've described the idea. Web searches and anything
+outside the project still ask first: say what you'd look for, and wait
+for their yes.
 
 After this recon, hunt for gaps the first time: list what you found
 that matters and they haven't mentioned, such as constraints, existing

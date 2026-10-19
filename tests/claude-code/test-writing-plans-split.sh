@@ -38,4 +38,18 @@ assert_contains "$output" "All parts up front outside autopilot:[^a-z]*yes\b" "N
 assert_contains "$output" "All parts up front under autopilot:[^a-z]*no\b" "Autopilot writes parts one at a time" || exit 1
 echo ""
 
+echo "Test 4: Part writer content, length, handover..."
+output=$(run_claude_fork "Read the superpowers:writing-plans part-writer prompt. Answer using exactly this structure:
+Whole helper script in the plan: <yes or no>
+Line budget to hit: <yes or no>
+Reports length against spec share: <yes or no>
+Writes handover prompt under autopilot: <yes or no>
+Writes handover prompt outside autopilot: <yes or no>" "$T")
+assert_contains "$output" "Whole helper script in the plan:[^a-z]*no\b" "Bodies become signatures" || exit 1
+assert_contains "$output" "Line budget to hit:[^a-z]*no\b" "No line budget" || exit 1
+assert_contains "$output" "Reports length against spec share:[^a-z]*yes\b" "Length line" || exit 1
+assert_contains "$output" "Writes handover prompt under autopilot:[^a-z]*yes\b" "Writer writes handover under autopilot" || exit 1
+assert_contains "$output" "Writes handover prompt outside autopilot:[^a-z]*no\b" "Main session writes it otherwise" || exit 1
+echo ""
+
 echo "=== All writing-plans split tests passed ==="

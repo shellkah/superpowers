@@ -45,18 +45,35 @@ That's the whole message.
 
 ## The Conversation
 
-Each message ends with one question: a single sentence with no list of
-example answers hanging off it. Use plain language, pitched just a little
-above where your human partner is. Match their vocabulary; never use
-process jargon.
+After your first message, ask so they can answer by selecting. Use the
+question tool (`AskUserQuestion` in Claude Code), with 2–4 options per
+question; the tool adds "Other". Batch related questions, up to 4 in one
+call, when none depends on another's answer. A question whose options
+depend on another answer waits for the next round. Keep each question
+short. Use plain language, pitched just a little above where your human
+partner is. Match their vocabulary; never use process jargon.
+
+When the tool can't be used, ask in plain text with numbered options, and
+say they can answer in their own words. That covers a harness with no
+question tool, a headless run (`claude -p`, autopilot unattended), and a
+tool call that errors or comes back with no answer. Never stall on an
+unanswered picker, and never carry on past one.
+
+Pickers are for questions that gather requirements and decisions, and for
+the builder check's "theirs" questions. These stay plain text: the
+opt-out line, the visual companion offer, playback's closing "what's
+wrong or missing?", and yes/no offers like a spike or a size override.
+An open question is still right when options would be guesses: their
+taste, a story, a real moment.
 
 Be clear and concise. Lead with what matters. Avoid jargon. When you
 report what you found, give them the most important findings and offer
 the rest.
 
-**Get them describing.** Open questions come first. Their own words carry
-intent that your options can't. Offer a short menu only when they're
-stuck. When they say "just guess" or "what do you think?", propose
+**Get them describing.** The opening is open, and so is a second question
+if their first answer is thin. Their own words carry intent that your
+options can't. Switch to choices once they've described the thing. When
+they say "just guess" or "what do you think?", propose
 something concrete.
 
 **How it gets made.** Every project rests on choices about medium, tools,
@@ -175,7 +192,8 @@ until the check is back. Sort what the builder asks into three piles:
 - **Theirs:** only your human partner can answer it, and the answer changes
   what gets built.
 
-Bring the "theirs" pile in one message, most important first. Update the
+Bring the "theirs" pile in one round through the question tool, most
+important first, each question with options and your recommendation. Update the
 document with their answers, then hand it over with a **Where to focus**
 list: the calls you made and the places where a misreading would cost the
 most, most important first, at most five items. Ask for one review of the
@@ -208,7 +226,7 @@ software, invoke superpowers:writing-plans and no other skill.
 
 | Thought | Reality |
 |---------|---------|
-| "I'll offer options to save them effort" | Options steer. Ask them to describe it first. |
+| "I'll open with options to save them effort" | The first question is open. Options come after they've described it. |
 | "I'll fill in sensible defaults" | Good. Say them out loud. A default they never heard is one they couldn't reject. |
 | "I should explain the process first" | Ask your question. The process shows itself. |
 | "They said 'sounds good' to the idea" | Approval covers what you showed them. A description you haven't written isn't approved. |

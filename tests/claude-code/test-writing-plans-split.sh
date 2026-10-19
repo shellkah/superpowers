@@ -52,4 +52,16 @@ assert_contains "$output" "Writes handover prompt under autopilot:[^a-z]*yes\b" 
 assert_contains "$output" "Writes handover prompt outside autopilot:[^a-z]*no\b" "Main session writes it otherwise" || exit 1
 echo ""
 
+echo "Test 5: Cross-part check under autopilot..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill and its prompts. Answer using exactly this structure:
+Cross-part check under autopilot run by: <main session or subagent>
+Cross-part check outside autopilot run by: <main session or subagent>
+Who updates the index from executor interfaces under autopilot: <main session or checker>
+Main session reads part file under autopilot: <yes or no>" "$T")
+assert_contains "$output" "Cross-part check under autopilot run by:.*subagent" "Check delegated under autopilot" || exit 1
+assert_contains "$output" "Cross-part check outside autopilot run by:.*main session" "Normal mode unchanged" || exit 1
+assert_contains "$output" "Who updates the index from executor interfaces under autopilot:.*checker" "Checker updates index" || exit 1
+assert_contains "$output" "Main session reads part file under autopilot:[^a-z]*no\b" "Main session stays out of part files" || exit 1
+echo ""
+
 echo "=== All writing-plans split tests passed ==="

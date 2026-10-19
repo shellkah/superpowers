@@ -48,8 +48,8 @@ When the part is written, run writing-plans' Self-Review on it and fix
 what you find. Its spec-coverage and Review Focus checks cover only what
 the index gives your part: your row in the Parts table and the interfaces
 your part must produce. A spec requirement that belongs to another part
-is not a gap, so do not add a task for it. The main session checks
-coverage across all parts.
+is not a gap, so do not add a task for it. The cross-part check covers
+all parts.
 
 Do not change the index's Cross-Part Interfaces. Use those names,
 signatures, and types exactly as the index gives them. If [WORKTREE_PATH]

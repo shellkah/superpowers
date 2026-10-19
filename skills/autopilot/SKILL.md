@@ -20,11 +20,20 @@ the run.
 
 Before step 1, note the branch you are on. The PR targets it.
 
-Dispatch every subagent whose report you need next in the foreground and
-wait for it (in Claude Code, `run_in_background: false`): the builder
-check, each part writer, each executor. Your next step needs that report,
-and a run nobody is watching can end while you wait on a background
-subagent, taking the subagent down with it.
+Never start the next step without the report it needs: the builder
+check's, each part writer's, each checker's, each executor's. Dispatch
+those subagents in the foreground and wait (in Claude Code,
+`run_in_background: false`), since a run nobody is watching can end while
+you wait on a background subagent. Where the harness runs subagents only
+in the background and notifies you when one finishes, end your turn and
+resume on the notification. Never poll a subagent's output, and never act
+on a guess of its result.
+
+Where the harness has a push channel (`PushNotification` in Claude Code),
+also send through it each part's status line, every blocker's question, a
+pause taking effect, anything published for your human partner, and the
+PR link. One short message each, never a report. Without a push channel,
+the status line alone.
 
 ## The Run Folder
 
@@ -83,7 +92,8 @@ the run is and what is pending. Continue from there.
 2. **Spec.** Write the spec where brainstorming says and run its builder
    check. Sort the builder's questions the way brainstorming says. The
    "theirs" pile is a blocker: ask it in one message, update the spec with
-   the answers, and continue. Add these questions to that message, skipping
+   the answers, and continue. Settle the minor ones yourself and mark them
+   as your calls. Add these questions to the "theirs" message, skipping
    any the request already answers, or that cannot apply (no services when
    the work needs none):
    - **Services.** Name the services the run depends on (a database, a
@@ -96,10 +106,10 @@ the run is and what is pending. Continue from there.
      each later build waits for the earlier one's acceptance. Default: stop
      after the first PR, with the next build's index written.
 
-   Put the answers in a `## Run notes` section at the end of the spec. Settle the minor ones yourself and mark them
-   as your calls. Commit the spec, then create the run folder, write
-   `state.md`, and put those calls in `main-record.md`. Do not stop for a review: the request for
-   a fully automated run is their approval of the spec.
+   Put their answers in a `## Run notes` section at the end of the spec.
+   Commit the spec, then create the run folder, write `state.md`, and put
+   your calls in `main-record.md`. Do not stop for a review: the request
+   for a fully automated run is their approval of the spec.
 
 3. **Split.** Invoke superpowers:writing-plans. With no split, it writes the
    one plan and its handover prompt, then returns. With a split, it writes
@@ -130,16 +140,22 @@ the run is and what is pending. Continue from there.
       `../writing-plans/part-writer-prompt.md`, on the model it names. Fill
       every placeholder. `[EARLIER_PART_PATHS]` is the part files written
       so far (`none` for part 1). `[WORKTREE_PATH]` is the worktree the
-      previous executor reported (`none` for part 1).
+      previous executor reported (`none` for part 1). `[UNDER_AUTOPILOT]`
+      is `yes`. `[HANDOVER_PATH]` is the handover file.
    2. **Read the writer's report.** An open question only your human
       partner can answer is a blocker: ask it, then send the answer back to
-      the writer. Settle the other questions yourself and record each one
-      as a ruling. For each interface difference, update the index's
-      Cross-Part Interfaces to match the code.
-   3. **Check it.** Run writing-plans' cross-part check on this part.
-   4. **Write its handover prompt.** Pick the part's mode and write its
-      prompt as writing-plans' Execution Handoff says, then append it to the
-      handover file (create the file with that layout for part 1).
+      the writer. Settle the other questions yourself and put each one in
+      `main-record.md`. Do not edit the index: the checker does.
+   3. **Check it.** Dispatch a fresh subagent with
+      `../writing-plans/cross-part-check-prompt.md`, on the model it names.
+      `[PREVIOUS_RECORD_PATH]` is the previous part's record (`none` for
+      part 1). `[WRITER_REPORT]` is the writer's report lines, pasted as
+      they came. Act on its `Unsettled` lines: re-dispatch the writer for
+      a part that is badly off; anything only your human partner can
+      answer is a blocker. Keep a `Length` note for the summary.
+   4. **Check the handover.** The writer's report says
+      `Handover: appended, mode <skill>`. Confirm the part's section is in
+      the handover file. Do not write it yourself.
    5. **Execute the part.** Dispatch a fresh executor subagent with
       `executor-prompt.md` in this directory, on the model it names.
       `[BRANCH]` is the index's `**Branch:**` for part 1, then the branch
@@ -148,17 +164,35 @@ the run is and what is pending. Continue from there.
       part's handover prompt with every path made absolute and its
       `Work on branch` line, if it has one, naming `[BRANCH]`.
       `[WORKTREE_PATH]` is `none` for part 1, then the worktree the
-      previous executor reported.
-   6. **Read the executor's report.** BLOCKED: see Blockers. DONE: keep its
-      branch, worktree, "Rulings I made", and "Deferred minors" for the
-      next part and the summary.
+      previous executor reported. `[RUN_NOTES]` is the spec's run notes,
+      pasted.
+   6. **Read the executor's report.** BLOCKED: see Blockers. PAUSED: see
+      Pausing; it is not a blocker. DONE: keep its branch, worktree,
+      record path, its `[review]` rulings, and its routine-ruling and
+      deferred-minor counts for the next part and the summary.
 
-   Pass every path to writers and executors as an absolute path: an
-   executor works in its own worktree, where files written after it
+   In step 4 you read reports and `state.md`, never a part file, the spec,
+   or product code: the writers, the checker and the executors read those.
+   Rewrite `state.md` at each sub-step boundary.
+
+   Pass every path to writers, checkers and executors as an absolute path:
+   an executor works in its own worktree, where files written after it
    branched are not there.
 
    Between parts, post one status line ("Part 1 of 3 done: storage layer,
-   24 tests passing.") and move to the next part without asking.
+   24 tests passing.") and move to the next part without asking. In
+   checkpoint mode (run notes), stop after the status line instead and
+   wait for "continue".
+
+   Work you do yourself between parts lives in `[RUN_DIR]` (or a worktree
+   of your own), never only in a temporary directory. Copy anything meant
+   for the branch into the worktree and commit it only while no executor
+   is running there.
+
+   Anything the run publishes for your human partner to look at (a design,
+   a document) goes out with its link through the push channel, and the
+   run carries on. List it in `state.md` until the summary. Do not stop
+   for it.
 
 5. **Open a PR.** When the work is done, run
    superpowers:finishing-a-development-branch where it lives: the worktree
@@ -196,8 +230,9 @@ the PR or the summary, and ask your human partner: say what blocks you,
 and end the message with the question they need to answer ("The
 integration tests need a Stripe test key and none is set. Can you add one
 to `.env`, or should I mock the API?"). Steps for them to follow are not a
-question. Wait for the answer, then continue from where it stopped. A
-blocker is:
+question. Send the question through the push channel too, where there is
+one: it is the message most worth reaching them away from the terminal.
+Wait for the answer, then continue from where it stopped. A blocker is:
 
 - a builder-check question only they can answer,
 - a part writer's open question only they can answer,
@@ -226,6 +261,17 @@ the same handover prompt, the branch and worktree from the BLOCKED report,
 and the answer, and point it at the ledger that report names. The ledger
 lets it pick up where the last one stopped.
 
+## Pausing
+
+A pause request from your human partner is not a blocker. Honour it at
+your next step boundary. If an executor is running, forward the pause to
+it (SendMessage in Claude Code) and wait for its report: it finishes its
+current task and reports `Status: PAUSED`. Record the pause in `state.md`
+(with the executor's agent id, when the harness has one) and send a short
+notice through the push channel. When they say to continue, continue the
+paused executor with SendMessage, or, if it cannot be resumed, dispatch a
+fresh one as Resuming After a Blocker says.
+
 ## Fallback
 
 With no subagent tool, write each part yourself, as writing-plans says, and
@@ -247,4 +293,4 @@ still hold: no finishing-a-development-branch and no push until step 5.
 | "I'll list the blocker under Parked and wrap up the run." | A blocker isn't parked work. Stop at it and end your message with the question. |
 | "The push was rejected, I'll force it." | Never force. A rejected push is a blocker. |
 | "The executor can push its own part." | Executors never push. Autopilot pushes once, at the end. |
-| "The executor will take a while, so I'll background it and pick up when it reports." | Dispatch it in the foreground and wait. If you end your turn to wait, an unattended run can end with it. |
+| "The executor will take a while, so I'll background it and check its output now and then." | Never poll and never guess. Dispatch in the foreground and wait; if the harness only runs it in the background, end your turn and resume on its notification. |

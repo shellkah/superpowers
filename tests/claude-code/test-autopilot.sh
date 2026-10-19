@@ -94,4 +94,22 @@ assert_contains "$output" "Probe creating a scratch database:[^a-z]*no\b" "Lasti
 assert_contains "$output" "A probe refusal before part 1:.*blocker" "Refusal is a blocker" || exit 1
 echo ""
 
+echo "Test 8: Step 4, pausing, notifications, dispatch..."
+output=$(run_claude_fork "Read the superpowers:autopilot skill. Answer using exactly this structure:
+Executor reports PAUSED: <blocker or not a blocker>
+Push a blocker's question when the harness has a push channel: <yes or no>
+Without push channel: <what is sent>
+Main session writes the handover prompt: <yes or no>
+Harness only runs subagents in background: <poll, or end turn and resume on notification>
+Between-parts work kept only in a temp directory: <yes or no>
+Stop to show a published design: <yes or no>" "$T")
+assert_contains "$output" "Executor reports PAUSED:.*not a blocker" "Pause is not a blocker" || exit 1
+assert_contains "$output" "Push a blocker's question when the harness has a push channel:[^a-z]*yes\b" "Blockers notify" || exit 1
+assert_contains "$output" "Without push channel:.*status line" "Falls back to the status line" || exit 1
+assert_contains "$output" "Main session writes the handover prompt:[^a-z]*no\b" "Writer writes handover" || exit 1
+assert_contains "$output" "Harness only runs subagents in background:.*end turn" "Resume on notification" || exit 1
+assert_contains "$output" "Between-parts work kept only in a temp directory:[^a-z]*no\b" "Durable main-session work" || exit 1
+assert_contains "$output" "Stop to show a published design:[^a-z]*no\b" "Publishing does not stop" || exit 1
+echo ""
+
 echo "=== All autopilot tests passed ==="

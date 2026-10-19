@@ -208,7 +208,7 @@ run_claude_fork() {
     repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     timeout "$timeout" claude -p "$prompt" \
         --plugin-dir "$repo_root" \
-        --settings '{"enabledPlugins":{"superpowers@claude-plugins-official":false}}' \
+        --settings '{"enabledPlugins":{"superpowers@claude-plugins-official":false,"superpowers@superpowers-dev":false}}' \
         "$@" 2>&1
 }
 

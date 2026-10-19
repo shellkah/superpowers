@@ -64,14 +64,15 @@ parts=$(ls "$plans"/*-part-*.md 2>/dev/null | grep -vc '\.handover\.md$' || true
 [ "$parts" -ge 2 ] && echo "  [PASS] $parts part files" || { echo "  [FAIL] Expected >=2 part files, got $parts"; exit 1; }
 sections=$(grep -c '^## Part [0-9]' "$plans"/*.handover.md || true)
 [ "$sections" -eq "$parts" ] && echo "  [PASS] One handover section per part" || { echo "  [FAIL] $sections handover sections for $parts parts"; exit 1; }
-# Each part's prompt carries "Work on branch <branch from the index>.", the
-# branch maybe in backticks; every part must name the same branch.
-branches=$(grep -ho 'Work on branch [^[:space:]]*' "$plans"/*.handover.md | sed 's/^Work on branch //; s/`//g; s/[.,;:]*$//' || true)
+# Each part's prompt carries a "**Branch:** work on branch <branch from the
+# index>." bullet, the branch maybe in backticks; every part must name the
+# same branch.
+branches=$(grep -hio 'work on branch [^[:space:]]*' "$plans"/*.handover.md | sed 's/^[Ww]ork on branch //; s/`//g; s/[.,;:]*$//' || true)
 branch_lines=$(printf '%s\n' "$branches" | grep -c . || true)
 distinct=$(printf '%s\n' "$branches" | grep . | sort -u || true)
 [ "$branch_lines" -eq "$parts" ] && [ "$(printf '%s\n' "$distinct" | grep -c . || true)" -eq 1 ] \
     && echo "  [PASS] All parts on one branch: $distinct" \
-    || { echo "  [FAIL] Expected $parts 'Work on branch' lines naming one branch, got $branch_lines:"; printf '%s\n' "$branches" | sed 's/^/    /'; exit 1; }
+    || { echo "  [FAIL] Expected $parts 'work on branch' lines naming one branch, got $branch_lines:"; printf '%s\n' "$branches" | sed 's/^/    /'; exit 1; }
 transcript=$(latest_transcript "$P2")
 [ -n "$transcript" ] || { echo "  [FAIL] No session transcript found"; exit 1; }
 # Count tool_use blocks only: prompt_snapshot records in the transcript also

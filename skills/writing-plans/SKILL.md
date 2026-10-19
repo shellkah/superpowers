@@ -71,7 +71,8 @@ with exactly these sections:
 
 Part writers may not change Cross-Part Interfaces. Under autopilot, the
 code earlier parts produced can overrule them: the writer plans against the
-code and reports the difference, and the main session updates the index.
+code and reports the difference, and the cross-part checker updates the
+index.
 
 **When parts are written.**
 
@@ -94,20 +95,29 @@ this line directly under the title:
 **Part N of M** · Index: `<index path>`
 ```
 
-**Cross-part check**, after all parts are written (under autopilot, after
-each part):
+**Cross-part check**, after all parts are written:
 
 - every part's Interfaces blocks match the index's Cross-Part Interfaces;
-- every spec requirement maps to a task in a written part, or, under
-  autopilot, to a later part in the index.
+- every spec requirement maps to a task in a written part.
 
 Fix small mismatches yourself. Re-dispatch the writer for a part that is
 badly off.
 
+Under autopilot, the main session does not run this check and does not
+read part files. After each part is written, a fresh subagent runs it with
+`cross-part-check-prompt.md` in this directory, on the model it names. The
+checker also updates the index's Cross-Part Interfaces from the writer's
+reported differences and the previous executor's interfaces produced, and
+a spec requirement may map to a later part in the index. The main session
+acts on its report: it re-dispatches the writer for a part that is badly
+off.
+
 **Writer questions.** In normal mode, settle what you can and record each
 one as a call you made. Bring the rest to your human partner under "Where
 to focus" in the closing message. Under autopilot, a question only your
-human partner can answer is a blocker for autopilot to ask.
+human partner can answer is a blocker for autopilot to ask. Autopilot
+passes the writer's reported interface differences to the cross-part
+checker; it does not edit the index itself.
 
 **No subagent tool:** write the parts yourself, one at a time, and re-read
 the index before each one.
@@ -338,4 +348,5 @@ to review the plan. Do not start executing it.
 
 **Under autopilot** (superpowers:autopilot is driving), skip the message and
 return control to autopilot. With a split, stop after the index; autopilot
-writes each part and appends its handover prompt as it goes.
+dispatches each part's writer, and the writer appends the part's handover
+prompt to the handover file as it goes.

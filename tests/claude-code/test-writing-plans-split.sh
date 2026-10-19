@@ -38,4 +38,30 @@ assert_contains "$output" "All parts up front outside autopilot:[^a-z]*yes\b" "N
 assert_contains "$output" "All parts up front under autopilot:[^a-z]*no\b" "Autopilot writes parts one at a time" || exit 1
 echo ""
 
+echo "Test 4: Part writer content, length, handover..."
+output=$(run_claude_fork "Read the superpowers:writing-plans part-writer prompt. Answer using exactly this structure:
+Whole helper script in the plan: <yes or no>
+Line budget to hit: <yes or no>
+Reports length against spec share: <yes or no>
+Writes handover prompt under autopilot: <yes or no>
+Writes handover prompt outside autopilot: <yes or no>" "$T")
+assert_contains "$output" "Whole helper script in the plan:[^a-z]*no\b" "Bodies become signatures" || exit 1
+assert_contains "$output" "Line budget to hit:[^a-z]*no\b" "No line budget" || exit 1
+assert_contains "$output" "Reports length against spec share:[^a-z]*yes\b" "Length line" || exit 1
+assert_contains "$output" "Writes handover prompt under autopilot:[^a-z]*yes\b" "Writer writes handover under autopilot" || exit 1
+assert_contains "$output" "Writes handover prompt outside autopilot:[^a-z]*no\b" "Main session writes it otherwise" || exit 1
+echo ""
+
+echo "Test 5: Cross-part check under autopilot..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill and its prompts. Answer using exactly this structure:
+Cross-part check under autopilot run by: <main session or subagent>
+Cross-part check outside autopilot run by: <main session or subagent>
+Who updates the index from executor interfaces under autopilot: <main session or checker>
+Main session reads part file under autopilot: <yes or no>" "$T")
+assert_contains "$output" "Cross-part check under autopilot run by:.*subagent" "Check delegated under autopilot" || exit 1
+assert_contains "$output" "Cross-part check outside autopilot run by:.*main session" "Normal mode unchanged" || exit 1
+assert_contains "$output" "Who updates the index from executor interfaces under autopilot:.*checker" "Checker updates index" || exit 1
+assert_contains "$output" "Main session reads part file under autopilot:[^a-z]*no\b" "Main session stays out of part files" || exit 1
+echo ""
+
 echo "=== All writing-plans split tests passed ==="

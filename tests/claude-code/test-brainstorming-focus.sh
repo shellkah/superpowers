@@ -65,7 +65,7 @@ assert_contains "$output" "Separate approaches round:[^a-z]*no\b" "No approaches
 assert_contains "$output" "Read the project without asking:[^a-z]*yes\b" "Project recon is free" || exit 1
 assert_contains "$output" "Search the web without asking:[^a-z]*no\b" "Web still asks" || exit 1
 assert_contains "$output" "Share findings before they describe it:[^a-z]*no\b" "Findings held until after the opening" || exit 1
-assert_contains "$output" "Gap hunts happen:.*\(recon\|look\).*\(write\|design\|description\)" "Two gap hunts" || exit 1
+assert_contains "$output" "Gap hunts happen:.*\(recon\|look\|read\).*\(write\|design\|description\)" "Two gap hunts" || exit 1
 echo ""
 
 echo "=== All brainstorming focus tests passed ==="

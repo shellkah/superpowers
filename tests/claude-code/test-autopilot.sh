@@ -68,4 +68,16 @@ assert_contains "$output" "Follow hook redirect from cat to Read:[^a-z]*yes\b" "
 assert_contains "$output" "Follow hook redirect to a tool that runs something:.*blocked" "Running redirect is BLOCKED" || exit 1
 echo ""
 
+echo "Test 6: Run folder and resuming..."
+output=$(run_claude_fork "Read the superpowers:autopilot skill. Answer using exactly this structure:
+Run folder: <path pattern>
+After compaction, read first: <file name>
+Re-read executor reports to rebuild context: <yes or no>
+Existing state.md naming a different spec: <reuse or replace>" "$T")
+assert_contains "$output" "Run folder:.*\.superpowers/autopilot/" "Run folder location" || exit 1
+assert_contains "$output" "After compaction, read first:.*state\.md" "Resume from state.md" || exit 1
+assert_contains "$output" "Re-read executor reports to rebuild context:[^a-z]*no\b" "No re-reading reports" || exit 1
+assert_contains "$output" "Existing state.md naming a different spec:.*replace" "Stale folder replaced" || exit 1
+echo ""
+
 echo "=== All autopilot tests passed ==="

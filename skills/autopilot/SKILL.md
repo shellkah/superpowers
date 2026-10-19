@@ -26,6 +26,44 @@ check, each part writer, each executor. Your next step needs that report,
 and a run nobody is watching can end while you wait on a background
 subagent, taking the subagent down with it.
 
+## The Run Folder
+
+Keep one folder per run in your own checkout (not an executor's
+worktree): `.superpowers/autopilot/<feature>/`, where `<feature>` is the
+spec's topic slug. Create it right after you commit the spec (step 2), and
+write a `.gitignore` containing `*` at `.superpowers/autopilot/` so git
+ignores it. Pass its absolute path as `[RUN_DIR]` to every writer, checker
+and executor.
+
+If the folder already exists and its `state.md` names a different spec,
+or a run whose PRs all opened, it is stale: replace it. Otherwise leave
+the folder in place after the run.
+
+It holds:
+
+- **`state.md`**, the run state. Its first line is
+  `# Autopilot run — spec: <spec path>`. Then: the spec, index and
+  handover paths; the current build, part and step; for each finished
+  part, its branch, worktree and last commit; pending items (an unanswered
+  blocker, a paused executor and its agent id when the harness has one);
+  the run notes (step 2); anything published but not yet seen. Pointers
+  and one-liners, never reports. Rewrite it whole at every step boundary;
+  never append to it.
+- **`part-N-record.md`**, one per part, written by its executor: every
+  ruling, every deferred minor, the interfaces it produced. With several
+  builds, `build-B-part-N-record.md`.
+- **`main-record.md`**: your own calls (on the builder check's minor
+  questions, on writer questions, on the pre-flight), one line each,
+  tagged like an executor's rulings (`[review]` or `[routine]`). The
+  cross-part checker appends its fixes here too.
+
+## Resuming After Compaction
+
+After a compaction or a session restart, read `state.md` first and trust
+it, plus `git log`, over your own recollection. Do not re-read executor
+reports, records or part files to rebuild context: `state.md` says where
+the run is and what is pending. Continue from there.
+
 ## The Flow
 
 1. **Brainstorm.** Invoke superpowers:brainstorming. Ask your questions as
@@ -46,8 +84,9 @@ subagent, taking the subagent down with it.
    check. Sort the builder's questions the way brainstorming says. The
    "theirs" pile is a blocker: ask it in one message, update the spec with
    the answers, and continue. Settle the minor ones yourself and mark them
-   as your calls. Commit the spec. Do not stop for a review: the request
-   for a fully automated run is their approval of the spec.
+   as your calls. Commit the spec, then create the run folder, write
+   `state.md`, and put those calls in `main-record.md`. Do not stop for a review: the request for
+   a fully automated run is their approval of the spec.
 
 3. **Split.** Invoke superpowers:writing-plans. With no split, it writes the
    one plan and its handover prompt, then returns. With a split, it writes

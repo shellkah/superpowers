@@ -36,4 +36,13 @@ Named by: <what>" "$T")
 assert_contains "$output" "Named by:.*handover" "executing-plans is named by the handover prompt" || exit 1
 echo ""
 
+echo "Test 5: Handover prompts as Markdown..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill's Execution Handoff. Answer using exactly this structure:
+Handover prompt in the handover file wrapped in a code block: <yes or no>
+Paths in the prompt formatted as: <inline code or plain>
+Where the skill does not say, answer 'not stated' instead of inferring." "$T")
+assert_contains "$output" "wrapped in a code block:[^a-z]*no\b" "Handover prompt is Markdown, not a code block" || exit 1
+assert_contains "$output" "Paths in the prompt formatted as:.*inline code" "Paths in inline code" || exit 1
+echo ""
+
 echo "=== All writing-plans handover tests passed ==="

@@ -163,7 +163,7 @@ the run is and what is pending. Continue from there.
       the previous executor reported; with no split, the
       `<feature>` slug from the plan's file name. `[HANDOVER_PROMPT]` is the
       part's handover prompt with every path made absolute and its
-      `Work on branch` line, if it has one, naming `[BRANCH]`.
+      `**Branch:**` bullet, if it has one, naming `[BRANCH]`.
       `[WORKTREE_PATH]` is `none` for part 1, then the worktree the
       previous executor reported. `[RUN_NOTES]` is the spec's run notes,
       pasted.

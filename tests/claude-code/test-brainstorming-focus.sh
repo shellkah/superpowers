@@ -52,4 +52,20 @@ assert_contains "$output" "Visual companion offer:.*plain text" "Companion offer
 assert_contains "$output" "Builder check theirs questions:.*picker" "Theirs pile uses picker" || exit 1
 echo ""
 
+echo "Test 5: Ideas, recon, gaps..."
+output=$(run_claude_fork "Read the superpowers:brainstorming skill. Answer using exactly this structure:
+Decision questions carry a recommended option: <yes or no>
+Separate approaches round: <yes or no>
+Read the project without asking: <yes or no>
+Search the web without asking: <yes or no>
+Share findings before they describe it: <yes or no>
+Gap hunts happen: <when>" "$T")
+assert_contains "$output" "Decision questions carry a recommended option:[^a-z]*yes\b" "Recommendation on each decision" || exit 1
+assert_contains "$output" "Separate approaches round:[^a-z]*no\b" "No approaches round" || exit 1
+assert_contains "$output" "Read the project without asking:[^a-z]*yes\b" "Project recon is free" || exit 1
+assert_contains "$output" "Search the web without asking:[^a-z]*no\b" "Web still asks" || exit 1
+assert_contains "$output" "Share findings before they describe it:[^a-z]*no\b" "Findings held until after the opening" || exit 1
+assert_contains "$output" "Gap hunts happen:.*\(recon\|look\).*\(write\|design\|description\)" "Two gap hunts" || exit 1
+echo ""
+
 echo "=== All brainstorming focus tests passed ==="

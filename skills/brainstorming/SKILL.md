@@ -102,14 +102,27 @@ time...", "If it could only do one of these well, which?", "What would
 make you wince if I got it wrong?" A guess they can correct ("I'm
 guessing this is because X keeps biting you?") often beats a question.
 
-**Offer recon.** Once you have a bit of grounding and looking would help,
-offer to go look: their codebase or project, their own files and data,
-or the web. Say what you'd look for. They decide whether you go.
+**Look around.** Reading the project is read-only: its code, its docs,
+its history, and their files in the working directory. Do it whenever it
+helps, without asking, and say briefly what you looked at. You may read
+before or during the opening so your questions are better informed, but
+share what you found only after they've described the idea. Web
+searches and anything outside the project still ask first: say what
+you'd look for, and wait for their yes.
 
-**Think wide privately.** Before you propose anything, come up with
-several ideas and drop the weak ones, including any that fight what
-they've told you about why. Show the comparison only when it helps them
-decide.
+After this recon, hunt for gaps the first time: list what you found
+that matters and they haven't mentioned, such as constraints, existing
+behaviour, likely conflicts, and prior attempts. Keep it brief, and ask
+which ones matter, as a multi-select question where the tool supports
+it.
+
+**Think wide privately, then bring your best.** Before you ask about a
+real decision, come up with several ideas and drop the weak ones,
+including any that fight what they've told you about why. The strong
+ones become the question's options: 2–4, each with its trade-off in the
+option's description, your pick first and marked "(Recommended)". There
+is no separate round of approaches. Options you haven't thought through,
+or that don't really differ, are worse than an open question.
 
 **Show, don't tell.** Offer the visual companion (below) whenever seeing
 would help more than reading:
@@ -163,6 +176,16 @@ If it grows mid-task, stop, say so, and step up a size.
 
 If this is really several independent projects, say so, agree on an
 order, and brainstorm them one at a time.
+
+## Hunt for What's Missing
+
+Hunt for gaps twice: after recon (looking around, above), and before
+the write-up.
+Before you write the full description, make a deliberate pass for gaps:
+goals, edge cases, failure modes, how it's run and maintained, and what
+it touches that nobody mentioned. Bring what matters as questions with
+options and your recommendation. Settle the rest yourself, and mark each
+as your call in the description.
 
 ## The Written Design
 
@@ -227,6 +250,8 @@ software, invoke superpowers:writing-plans and no other skill.
 | Thought | Reality |
 |---------|---------|
 | "I'll open with options to save them effort" | The first question is open. Options come after they've described it. |
+| "I'll ask open questions so I don't steer" | After the opening, bring your options and your recommendation. "Other" is always there. |
+| "I'll ask before I look at the code" | Reading the project is free. Look, then say what you found. |
 | "I'll fill in sensible defaults" | Good. Say them out loud. A default they never heard is one they couldn't reject. |
 | "I should explain the process first" | Ask your question. The process shows itself. |
 | "They said 'sounds good' to the idea" | Approval covers what you showed them. A description you haven't written isn't approved. |

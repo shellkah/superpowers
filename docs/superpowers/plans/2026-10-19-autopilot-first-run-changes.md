@@ -287,3 +287,21 @@ echo ""
 - [ ] **Step 5: Read-through check** (spec, Verification): every placeholder autopilot fills (`[RUN_DIR]`, `[RUN_NOTES]`, `[HANDOVER_PATH]`, `[UNDER_AUTOPILOT]`, the checker's) is defined in its prompt; the executor report fields match what step 4.6 and step 6 read. Fix any mismatch.
 
 - [ ] **Step 6: Commit.** `git commit -m "feat(autopilot): lean summary, full rulings in the PR, several-PR runs"` (add changed files).
+
+### Task 8: Handover prompts as Markdown, not a text block
+
+Not from the spec: your human partner asked for it on 2026-10-19 after seeing the handover file. The target format is `docs/superpowers/plans/2026-10-19-autopilot-first-run-changes.handover.md` as it now stands.
+
+**Files:**
+- Modify: `skills/writing-plans/SKILL.md` (Execution Handoff steps 2–4), `skills/writing-plans/part-writer-prompt.md` (the handover it appends under autopilot, from Task 2)
+- Test: `tests/claude-code/test-writing-plans-handover.sh`
+
+- [ ] **Step 1: Write the failing test.** Append a test asking: `Handover prompt in the handover file wrapped in a code block: <yes or no>` and `Paths in the prompt formatted as: <inline code or plain>`; assert `no` and `inline code`.
+
+- [ ] **Step 2: Run it.** Run: `bash tests/claude-code/test-writing-plans-handover.sh`. Expected: the new test FAILS.
+
+- [ ] **Step 3: Edit Execution Handoff.** Step 2's layout shows each part's prompt as Markdown under its heading: the `Execute part N of M…` sentence with paths in inline code, then bullets `**Skill:**`, `**Why this mode:**`, `**Branch:**` (split plans), `**Workspace:**` or `**Previous part:**`, `**Not the last part:**` — carrying the same content step 3 lists today. Step 3's content list stays; only its rendering changes. Step 4's closing message shows the part 1 prompt the same way (no fenced `text` block). Autopilot's `[HANDOVER_PROMPT]` filling (Task 6) still works on this format: check its wording.
+
+- [ ] **Step 4: Run the tests.** Run: `bash tests/claude-code/test-writing-plans-handover.sh && bash tests/claude-code/test-writing-plans-split.sh`. Expected: all PASS.
+
+- [ ] **Step 5: Commit.** `git commit -m "feat(writing-plans): write handover prompts as Markdown"` (add changed files).

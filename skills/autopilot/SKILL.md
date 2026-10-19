@@ -205,7 +205,8 @@ the run is and what is pending. Continue from there.
    - **The repo has a remote and a working CLI for its host** (for GitHub,
      `gh auth status` succeeds): take "Push and create a Pull Request".
      Push only the feature branch, never with force. Open a regular PR, not
-     a draft, against the branch you noted at the start. Follow the repo's
+     a draft, against the branch you noted at the start (for a later build,
+     the previous build's branch). Follow the repo's
      PR template and conventions. The description is the step 6 summary,
      then every ruling and deferred minor: join `main-record.md` and the
      part records on the shell, inside a collapsed `<details>` section,
@@ -250,6 +251,9 @@ own pre-flight, its own PR and its own summary.
   branch, and its PR targets that branch. For its part 1, cut its branch
   in the previous build's worktree (`git -C <worktree> switch -c
   <branch>`) and pass that worktree and branch to the executor.
+- **Tell each executor its build.** Add `Build B of N` to the run notes
+  you paste as `[RUN_NOTES]`, so it names its record
+  `build-B-part-N-record.md`.
 
 ## Blockers
 
@@ -307,6 +311,12 @@ With no subagent tool, write each part yourself, as writing-plans says, and
 run each part's handover prompt in this session with
 superpowers:executing-plans, part by part. The executor prompt's limits
 still hold: no finishing-a-development-branch and no push until step 5.
+Step 4's rule against reading part files, the spec and code does not
+apply here: you are the writer and the executor. Run writing-plans'
+cross-part check yourself after each part is written, as its normal mode
+describes. Tag your rulings `[review]` or `[routine]` as the executor
+prompt says, and write the part's record to `[RUN_DIR]` before
+executing-plans deletes the plan's workspace, so steps 5 and 6 find it.
 
 ## Red Flags
 

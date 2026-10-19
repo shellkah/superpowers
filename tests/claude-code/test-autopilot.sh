@@ -127,4 +127,17 @@ assert_contains "$output" "Several PRs, default after first PR:.*stop" "Default 
 assert_contains "$output" "Later build branches from:.*previous" "Stacked builds" || exit 1
 echo ""
 
+echo "Test 10: Fallback records, build numbers, stacked PR target..."
+output=$(run_claude_fork "Read the superpowers:autopilot skill and its executor prompt. Answer using exactly this structure:
+Fallback with no subagent tool, part record written before the workspace is deleted: <yes or no>
+Fallback with no subagent tool, cross-part check run by: <main session or nobody>
+The [RUN_NOTES] pasted for a build 2 executor say which build it is in: <yes or no>
+Step 5 names the PR target for a later build: <yes or no>
+Where the skill does not say, answer 'not stated' instead of inferring." "$T")
+assert_contains "$output" "part record written before the workspace is deleted:[^a-z]*yes\b" "Fallback keeps the record" || exit 1
+assert_contains "$output" "cross-part check run by:.*main session" "Fallback runs the check" || exit 1
+assert_contains "$output" "say which build it is in:[^a-z]*yes\b" "Build number reaches the executor" || exit 1
+assert_contains "$output" "Step 5 names the PR target for a later build:[^a-z]*yes\b" "Stacked PR target in step 5" || exit 1
+echo ""
+
 echo "=== All autopilot tests passed ==="

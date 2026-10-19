@@ -83,7 +83,20 @@ the run is and what is pending. Continue from there.
 2. **Spec.** Write the spec where brainstorming says and run its builder
    check. Sort the builder's questions the way brainstorming says. The
    "theirs" pile is a blocker: ask it in one message, update the spec with
-   the answers, and continue. Settle the minor ones yourself and mark them
+   the answers, and continue. Add these questions to that message, skipping
+   any the request already answers, or that cannot apply (no services when
+   the work needs none):
+   - **Services.** Name the services the run depends on (a database, a
+     container, a dev server) and ask whether you may restart them if they
+     go down. The consent covers restarting those named services, nothing
+     else.
+   - **Checkpoints.** Ask whether they want the run to stop after each
+     part. Default: no.
+   - **Several PRs**, when the request names more than one: ask whether
+     each later build waits for the earlier one's acceptance. Default: stop
+     after the first PR, with the next build's index written.
+
+   Put the answers in a `## Run notes` section at the end of the spec. Settle the minor ones yourself and mark them
    as your calls. Commit the spec, then create the run folder, write
    `state.md`, and put those calls in `main-record.md`. Do not stop for a review: the request for
    a fully automated run is their approval of the spec.
@@ -92,6 +105,23 @@ the run is and what is pending. Continue from there.
    one plan and its handover prompt, then returns. With a split, it writes
    only the index, then returns. Either way there is no closing message and
    no review stop.
+
+   **Pre-flight**, once the index (or the plan) exists and before part 1 is
+   written. List the commands the run will rely on (tests, linters, local
+   servers, scratch databases) from the index, the spec and the repo.
+   - Probe each one with no lasting effect, once: the existing test
+     suite, a linter, a version check. Record only pass or refused, not
+     the output.
+   - Do not probe anything that creates, changes, deletes or starts
+     something lasting (a database, a container, a server left running,
+     `rm`). List it to ask about instead.
+   - Bring every refused probe and every unprobed command to your human
+     partner in one message: allow it, or say how to work around it. This
+     is a blocker before part 1. A refused probe is never retried by
+     another route.
+
+   Add what the pre-flight settles to the spec's run notes and commit
+   them. Mirror the run notes in `state.md`.
 
 4. **Write, then execute, one part at a time.** With no split, the plan and
    its handover prompt already exist: skip to sub-step 5, the executor.
@@ -179,7 +209,9 @@ blocker is:
   other side effect in the request ("then deploy it") does not
   pre-authorize it: stop right before it and ask,
 - an environment problem you cannot fix: missing credentials, a login, a
-  service that is down,
+  service that is down and not named in the run notes as one you may
+  restart,
+- a refused or unprobed command from the pre-flight,
 - anything where a wrong guess would be expensive to undo.
 
 Everything else is a ruling: decide it, record it, keep going. Every

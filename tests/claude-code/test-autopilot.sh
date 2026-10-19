@@ -80,4 +80,18 @@ assert_contains "$output" "Re-read executor reports to rebuild context:[^a-z]*no
 assert_contains "$output" "Existing state.md naming a different spec:.*replace" "Stale folder replaced" || exit 1
 echo ""
 
+echo "Test 7: Up-front questions and pre-flight..."
+output=$(run_claude_fork "Read the superpowers:autopilot skill. Answer using exactly this structure:
+Asks whether it may restart named services: <yes or no>
+Pre-flight runs: <before the index or after the index>
+Probe the existing test suite: <yes or no>
+Probe creating a scratch database: <yes or no>
+A probe refusal before part 1: <blocker or ruling>" "$T")
+assert_contains "$output" "Asks whether it may restart named services:[^a-z]*yes\b" "Restart consent asked" || exit 1
+assert_contains "$output" "Pre-flight runs:.*after the index" "Pre-flight after step 3" || exit 1
+assert_contains "$output" "Probe the existing test suite:[^a-z]*yes\b" "Harmless probes run" || exit 1
+assert_contains "$output" "Probe creating a scratch database:[^a-z]*no\b" "Lasting effects asked, not probed" || exit 1
+assert_contains "$output" "A probe refusal before part 1:.*blocker" "Refusal is a blocker" || exit 1
+echo ""
+
 echo "=== All autopilot tests passed ==="

@@ -302,26 +302,38 @@ part, in execution order:
 ````markdown
 # Handover: <Feature Name>
 
-Spec: `<spec path>`
+**Spec:** `<spec path>`
 
 ## Part 1 of M: <part name>
 
-```text
 <the part 1 prompt>
-```
 
 ## Part 2 of M: <part name>
 ...
 ````
 
-**3. What each prompt contains,** in this order:
+Write each prompt as Markdown under its heading, never inside a code
+block, so it reads well in the file and pastes cleanly.
 
-- `Execute part N of M of the implementation plan at <plan path> (spec: <spec path>).`
-- `Use superpowers:<subagent-driven-development|executing-plans>. Why this mode: <one sentence>.`
-- Split plans only: `Work on branch <branch from the index>.`
-- Part 1: `Set up the workspace as the skill says.`
-- Parts after part 1: continue on that branch in the worktree the previous part used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
-- Every part except the last: `This is not the last part. When the final review passes, report and stop without running superpowers:finishing-a-development-branch; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.`
+**3. What each prompt contains,** in this order: one sentence, then a
+bullet per item with a bold label. Put every path, branch and skill name in
+inline code.
+
+```markdown
+Execute part N of M of the implementation plan at `<plan path>` (spec: `<spec path>`).
+
+- **Skill:** use `superpowers:<subagent-driven-development|executing-plans>`.
+- **Why this mode:** <one sentence>.
+- **Branch:** work on branch `<branch from the index>`.
+- **Workspace:** set up the workspace as the skill says.
+- **Previous part:** continue on that branch in the worktree part N-1 used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
+- **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.
+```
+
+- **Branch:** split plans only.
+- **Workspace:** part 1 only.
+- **Previous part:** every part after part 1.
+- **Not the last part:** every part except the last.
 
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover
@@ -336,9 +348,7 @@ Plan complete: `<plan path or index path>`.
 
 **Handover:** recommended mode <mode>, because <reason>. Paste this into a fresh session once the plan looks right:
 
-```text
 <part 1 prompt>
-```
 
 The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session.
 ````

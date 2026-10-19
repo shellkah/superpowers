@@ -59,7 +59,8 @@ plan against the code and report the difference.
 Handover prompts: outside autopilot, do not write them; the main session
 writes them all after every part is written. Under autopilot, write your
 part's handover prompt as writing-plans' Execution Handoff says (pick the
-mode, give one sentence of reason, the prompt's contents in order), and
+mode, give one sentence of reason, the prompt's contents in order, as
+Markdown under its heading, not in a code block), and
 append it to [HANDOVER_PATH]. For part 1, create the file with that
 layout first.
 

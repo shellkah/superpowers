@@ -43,6 +43,13 @@ Never run superpowers:finishing-a-development-branch, even on the last
 part. Never push, merge, or publish anything. Autopilot opens the PR itself
 once every part is done.
 
+Run notes, settled with your human partner before part 1 (services you
+may restart, commands the pre-flight checked, other consents):
+
+[RUN_NOTES]
+
+Your run folder is [RUN_DIR]. It is outside your worktree and survives it.
+
 On any of the skill's four stop conditions, an environment problem you
 cannot fix (missing credentials, a login, a service that is down), or
 anything only your human partner can answer, stop and report BLOCKED.
@@ -57,22 +64,65 @@ routine question a skill would put to them, such as whether to set up a
 worktree, is not one of these: it is a ruling. Take the safer path,
 ledger it, and keep going.
 
-When the final review passes, or when you stop on a blocker, report exactly
-this:
+A service that is down is BLOCKED, unless the run notes name it as one
+you may restart. Then restart that service, ledger it, and carry on.
+Restart nothing else.
+
+A command refused by a permission check or a hook is never run again
+by another agent, or by another route to the same effect. A hook that
+points to an equivalent read-only tool for the same read (Read for
+`cat`) may be followed: ledger it. A refusal of the action itself, or
+a redirect to a tool that runs or changes something, is BLOCKED. Tell
+every implementer the same.
+
+A hook's instruction that conflicts with autopilot (its own plans, its
+own checkouts) is not followed. Autopilot's worktree and ledger rule.
+
+Tag every ruling when you ledger it, by its cost if wrong:
+`Ruling: [review] ...` when it touches permissions, data, outside
+systems, the spec's meaning, or anything costly to undo; `Ruling:
+[routine] ...` for everything else. Tell every implementer the same.
+
+If autopilot asks you to pause, finish the task in progress, ledger
+`PAUSED, resume at Task N` (N the next task), and report at once with
+`Status: PAUSED`. Do not wait for a go-ahead: autopilot continues you
+when your human partner says so. Implementers you dispatched are not
+paused mid-task; the boundary is your own task boundary.
+
+Write your record before you report and before anything deletes your
+workspace. When the final review passes, write it before the skill
+deletes the plan's workspace and ledger; when you stop on a blocker or a
+pause, write it before you report BLOCKED or PAUSED. The record is
+`[RUN_DIR]/part-N-record.md`, N being your part number (`part-1-record.md`
+with no split; `build-B-part-N-record.md` for build B when the run notes
+number several builds). It holds:
+
+- every ruling from the ledger, with its tag and what it costs if wrong;
+- every minor (deferred) line from the ledger;
+- `Interfaces produced:`, in the index's Cross-Part Interfaces format,
+  with a `file:line` for each name and signature later parts can use.
+
+A later report from the same part overwrites the record: the last report
+wins.
+
+When the final review passes, or when you stop on a blocker or a pause,
+report exactly this:
 
 ```text
-Status: DONE | BLOCKED
+Status: DONE | BLOCKED | PAUSED
 Branch: <name>
 Worktree: <path>
 Last commit: <sha>
 Ledger: <path to this plan's progress ledger>
+Record: <path to your record in [RUN_DIR]>
 Blocker: <what blocked you and what you need; BLOCKED only>
+Resume at: <the next task; PAUSED only>
 Built: <what this part built>
 Tests: <command and result>
 Final review: <outcome>
 Rulings I made:
-- <every ruling from the ledger, with what it costs if wrong>
-Deferred minors:
-- <every minor (deferred) line from the ledger>
+- <every [review] ruling from the ledger, with what it costs if wrong>
+Routine rulings: <count; they are in the record>
+Deferred minors: <count; they are in the record>
 ```
 ````

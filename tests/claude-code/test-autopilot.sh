@@ -112,4 +112,19 @@ assert_contains "$output" "Between-parts work kept only in a temp directory:[^a-
 assert_contains "$output" "Stop to show a published design:[^a-z]*no\b" "Publishing does not stop" || exit 1
 echo ""
 
+echo "Test 9: Summary, PR description, several PRs..."
+output=$(run_claude_fork "Read the superpowers:autopilot skill. Answer using exactly this structure:
+Summary leads with: <which rulings>
+Routine rulings in summary: <in full, or count>
+PR description built by reading records into context: <yes or no>
+Several PRs, default after first PR: <stop or continue>
+Later build branches from: <base branch or previous build's branch>
+Where the skill does not say, answer 'not stated' instead of inferring." "$T")
+assert_contains "$output" "Summary leads with:.*review" "Summary leads with [review] rulings" || exit 1
+assert_contains "$output" "Routine rulings in summary:.*count" "Routine rulings counted" || exit 1
+assert_contains "$output" "PR description built by reading records into context:[^a-z]*no\b" "Records joined on the shell" || exit 1
+assert_contains "$output" "Several PRs, default after first PR:.*stop" "Default stop after first PR" || exit 1
+assert_contains "$output" "Later build branches from:.*previous" "Stacked builds" || exit 1
+echo ""
+
 echo "=== All autopilot tests passed ==="

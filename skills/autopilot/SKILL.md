@@ -148,8 +148,9 @@ the run is and what is pending. Continue from there.
       `main-record.md`. Do not edit the index: the checker does.
    3. **Check it.** Dispatch a fresh subagent with
       `../writing-plans/cross-part-check-prompt.md`, on the model it names.
-      `[PREVIOUS_RECORD_PATH]` is the previous part's record (`none` for
-      part 1). `[WRITER_REPORT]` is the writer's report lines, pasted as
+      Fill every placeholder. `[PREVIOUS_RECORD_PATH]` is the previous
+      part's record and `[WORKTREE_PATH]` the worktree the previous
+      executor reported (`none` for both in part 1). `[WRITER_REPORT]` is the writer's report lines, pasted as
       they came. Act on its `Unsettled` lines: re-dispatch the writer for
       a part that is badly off; anything only your human partner can
       answer is a blocker. Keep a `Length` note for the summary.
@@ -205,23 +206,50 @@ the run is and what is pending. Continue from there.
      `gh auth status` succeeds): take "Push and create a Pull Request".
      Push only the feature branch, never with force. Open a regular PR, not
      a draft, against the branch you noted at the start. Follow the repo's
-     PR template and conventions, and put the step 6 summary in the
-     description.
+     PR template and conventions. The description is the step 6 summary,
+     then every ruling and deferred minor: join `main-record.md` and the
+     part records on the shell, inside a collapsed `<details>` section,
+     into a body file (`cat` them after the summary), and pass it with
+     `gh pr create --body-file` or your host's equivalent. Do not read the
+     records to build it.
    - **No remote, or no working CLI:** take "Keep the branch as-is" and say
      why there is no PR. This is not a blocker.
 
    Never take "Merge back locally". Autopilot never merges. A rejected push
    is a blocker, not a reason to force.
 
-6. **Summarize** in one message:
+6. **Summarize** in one message, in this order:
+   - every `[review]` ruling made without your human partner: each
+     executor's "Rulings I made", plus your own `[review]` calls
+     (`grep '\[review\]'` on `main-record.md`), each with what it costs
+     if wrong,
+   - **Not yet seen by you:** anything published during the run that they
+     have not looked at, with its link,
    - the PR link, or why there is none,
    - what was built, part by part,
-   - tests and final-review outcomes for each part,
-   - every ruling made without your human partner: each executor's "Rulings
-     I made", plus the calls you made yourself (builder check, writer
-     questions, index updates),
-   - what was parked: each executor's "Deferred minors", plus open items,
+   - tests and final-review outcomes for each part, and any checker
+     `Length` note,
+   - routine rulings and deferred minors as counts, with a pointer to the
+     PR description where each is listed,
+   - open items,
    - where the work lives: branch and worktree.
+
+## Runs With Several PRs
+
+When the request names several PRs, the spec covers every build and the
+run keeps one run folder. Number the builds in `state.md`. Steps 3 to 6
+run once per build: each build gets its own index and handover file, its
+own pre-flight, its own PR and its own summary.
+
+- **Default: stop after the first PR.** Write the next build's index
+  against the first PR's branch, notify, and wait for "continue". On
+  "continue", if the acceptance changed the earlier build, re-run
+  writing-plans' split for the next build first. If the run notes say
+  later builds need not wait, carry on without stopping.
+- **Stacked branches.** A later build branches from the previous build's
+  branch, and its PR targets that branch. For its part 1, cut its branch
+  in the previous build's worktree (`git -C <worktree> switch -c
+  <branch>`) and pass that worktree and branch to the executor.
 
 ## Blockers
 
@@ -250,7 +278,8 @@ Wait for the answer, then continue from where it stopped. A blocker is:
 - anything where a wrong guess would be expensive to undo.
 
 Everything else is a ruling: decide it, record it, keep going. Every
-ruling goes in the summary.
+ruling goes in the PR description; every `[review]` ruling also goes in
+the summary.
 
 ## Resuming After a Blocker
 
@@ -287,7 +316,9 @@ still hold: no finishing-a-development-branch and no push until step 5.
 | "I'll guess so I don't interrupt them." | A blocker is a question. Ask it. |
 | "The PR is green, I'll merge it." | Autopilot ends at an open PR. It never merges. |
 | "I'll plan all the parts now and save time." | Under autopilot, each part is written after the previous one runs, against the real code. |
-| "The ruling was small, I'll leave it out of the summary." | Every ruling goes in the summary. |
+| "The ruling was small, I'll leave it out of the record." | Every ruling goes in a record and the PR description. Every `[review]` ruling also goes in the summary. |
+| "I lost track after the compaction, I'll re-read the executor reports." | Read `state.md` and `git log`. They say where the run is. |
+| "The hook refused that command, I'll have a subagent run it." | A refused command is never re-run by another agent or another route. Ask, or work around it. |
 | "Brainstorming says to invoke autopilot, so I'll invoke it." | Autopilot is already driving. Carry on in brainstorming. |
 | "They asked me to run the deploy, and with no key it will just fail." | Running it is the side effect, even a run you expect to fail. Stop before it and ask. |
 | "I'll list the blocker under Parked and wrap up the run." | A blocker isn't parked work. Stop at it and end your message with the question. |

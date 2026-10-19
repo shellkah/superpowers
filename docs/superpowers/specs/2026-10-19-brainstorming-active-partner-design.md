@@ -75,6 +75,16 @@ question is fine; switch to choices once they have described the thing.
 - The rule "each message ends with one question: a single sentence with no
   list of example answers hanging off it" is replaced by the above.
   Questions stay short and in plain language, pitched as today.
+- **When the tool can't be used**, ask in plain text with numbered
+  options: no question tool in the harness, a headless run (`claude -p`,
+  autopilot unattended), or a tool call that errors or comes back with no
+  answer. A run never stalls on, or carries on past, an unanswered
+  picker. *(Designer's call, from the builder check.)*
+- **Scope:** pickers are for questions that gather requirements and
+  decisions, and the builder check's "theirs" questions. These stay plain
+  text: the opt-out line, the visual companion offer (its own message),
+  playback's closing "what's wrong or missing?", and yes/no offers like a
+  spike or a size override. *(Designer's call.)*
 - An open question is still right when options would be guesses (the
   human's taste, a story, a real moment). Not every question must be a
   picker.
@@ -95,6 +105,10 @@ question is fine; switch to choices once they have described the thing.
   directory) is read-only: do it when it helps, without asking, and say
   briefly what you looked at.
 - Web searches and anything outside the project still ask first.
+- **Timing:** the agent may read before or during the opening, so its
+  first question is better informed, but it shares findings and gaps only
+  after the human has described the idea. Your human partner chose this
+  over "no reading until they describe it".
 
 ### 5. Gap hunting, twice
 
@@ -140,7 +154,10 @@ Existing Tests 1–3 must still pass.
 
 ## Verification
 
-The tests above, plus your human partner's next real brainstorm.
+The tests above, plus your human partner's next real brainstorm. No
+behaviour evals: this is fork-only, and your human partner chose this
+level. Comprehension tests check the rules are stated, not followed; the
+real session is the behaviour check.
 
 ## Left to the builder
 

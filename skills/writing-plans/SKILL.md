@@ -336,7 +336,8 @@ part, in execution order:
 ````
 
 Write each prompt as Markdown under its heading, never inside a code
-block, so it reads well in the file and pastes cleanly.
+block, so it reads well in the file. The closing message is different: it
+puts the part 1 prompt in a `markdown` code block (step 4).
 
 **3. What each prompt contains,** in this order: one sentence, then a
 bullet per item with a bold label. Put every path, branch and skill name in
@@ -384,12 +385,16 @@ Plan complete: `<plan path or index path>`.
 
 **Handover:** recommended mode <mode>, because <reason>. Paste this into a fresh session once the plan looks right:
 
+```markdown
 <part 1 prompt>
+```
 
 The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session: each one writes its part against the code the earlier parts produced, shows it to you, then executes it.
 ````
 
-Drop the last line when there is one part. Then wait for your human partner
+The prompt goes in the code block as written in the handover file, so it
+copies in one piece with its Markdown intact. Drop the last line when
+there is one part. Then wait for your human partner
 to review the plan. Do not start executing it.
 
 **Under autopilot** (superpowers:autopilot is driving), skip the message and

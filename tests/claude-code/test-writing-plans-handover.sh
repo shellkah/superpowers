@@ -56,4 +56,13 @@ assert_contains "$output" "Previous part bullet:[^a-z]*yes\b" "Part 2 has a Prev
 assert_contains "$output" "Not the last part bullet:[^a-z]*yes\b" "Part 2 is not the last part" || exit 1
 echo ""
 
+echo "Test 7: Closing message wraps the prompt in a code block..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill's Execution Handoff. Outside autopilot, in the message that ends the planning session, is the part 1 handover prompt inside a code block? Answer using exactly this structure:
+Prompt in closing message wrapped in a code block: <yes or no>
+Code block language: <language or none>
+Where the skill does not say, answer 'not stated' instead of inferring." "$T")
+assert_contains "$output" "closing message wrapped in a code block:[^a-z]*yes\\b" "Closing message prompt is in a code block" || exit 1
+assert_contains "$output" "Code block language:.*markdown" "The block is tagged markdown" || exit 1
+echo ""
+
 echo "=== All writing-plans handover tests passed ==="

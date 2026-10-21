@@ -69,20 +69,24 @@ with exactly these sections:
 - `<exact name and signature>`: <what later parts use it for>
 ```
 
-Part writers may not change Cross-Part Interfaces. Under autopilot, the
-code earlier parts produced can overrule them: the writer plans against the
-code and reports the difference, and the cross-part checker updates the
-index.
+Part writers may not change Cross-Part Interfaces. Once earlier parts
+have run, the code they produced can overrule them: the writer plans
+against the code and reports the difference, and the cross-part check
+updates the index.
 
-**When parts are written.**
+**When parts are written.** Each part is written just before it executes,
+so it is planned against the code the earlier parts produced, not against
+guesses about it. Never write a later part before the part ahead of it has
+run: that is the failure the split exists to prevent.
 
-- **Normal mode:** all parts are written up front in this session, in
-  order, so your human partner can review the whole plan before anything
+- **Normal mode:** this session writes the index and part 1 only. Each
+  later part is written at the start of its own handover session, as
+  Writing a Later Part says, then executed in that session. Your human
+  partner reviews the index and part 1 now, and each later part before it
   runs.
 - **Under autopilot** (superpowers:autopilot is driving): writing-plans
   writes only the index and returns. Autopilot writes each part just before
-  executing it, so each part is planned against the code the earlier parts
-  produced.
+  executing it.
 
 **Writing a part.** Dispatch one fresh subagent per part with
 `part-writer-prompt.md` in this directory, on the model it names.
@@ -95,22 +99,24 @@ this line directly under the title:
 **Part N of M** · Index: `<index path>`
 ```
 
-**Cross-part check**, after all parts are written:
+**Cross-part check**, after each part is written:
 
 - every part's Interfaces blocks match the index's Cross-Part Interfaces;
-- every spec requirement maps to a task in a written part.
+- every spec requirement maps to a task in a written part, or to a later
+  part in the index.
 
-Fix small mismatches yourself. Re-dispatch the writer for a part that is
+Once earlier parts have run, first bring the index's Cross-Part Interfaces
+in line with the code, from the writer's reported differences. Fix small
+mismatches yourself. Re-dispatch the writer for a part that is
 badly off.
 
 Under autopilot, the main session does not run this check and does not
 read part files. After each part is written, a fresh subagent runs it with
 `cross-part-check-prompt.md` in this directory, on the model it names. The
 checker also updates the index's Cross-Part Interfaces from the writer's
-reported differences and the previous executor's interfaces produced, and
-a spec requirement may map to a later part in the index. The main session
-acts on its report: it re-dispatches the writer for a part that is badly
-off.
+reported differences and the previous executor's interfaces produced.
+The main session acts on its report: it re-dispatches the writer for a
+part that is badly off.
 
 **Writer questions.** In normal mode, settle what you can and record each
 one as a call you made. Bring the rest to your human partner under "Where
@@ -119,8 +125,23 @@ human partner can answer is a blocker for autopilot to ask. Autopilot
 passes the writer's reported interface differences to the cross-part
 checker; it does not edit the index itself.
 
-**No subagent tool:** write the parts yourself, one at a time, and re-read
-the index before each one.
+**No subagent tool:** write the part yourself, and re-read the index first.
+
+## Writing a Later Part
+
+Normal mode only. A handover prompt that says "Write, then execute part N"
+brings you here, in a fresh session:
+
+1. Check that part N-1 is complete: every task in its plan file is checked
+   off. If it is not, stop and say so.
+2. Dispatch the part writer with `part-writer-prompt.md`, as Writing a
+   Part says. `[EARLIER_PART_PATHS]` is the part files written so far.
+   `[WORKTREE_PATH]` is the worktree part N-1 used (`git worktree list`
+   finds it). `[UNDER_AUTOPILOT]` is `no`.
+3. Run the cross-part check on the part.
+4. Show your human partner the part file and a **Where to focus** list,
+   the writer's open questions first, and wait for their go-ahead. Then execute the part with the skill the
+   handover prompt names. Do not start a new session for it.
 
 ## File Structure
 
@@ -284,8 +305,10 @@ Do not ask your human partner which execution approach to use. You already
 know which one you recommend, so act on it: write a handover prompt for each
 part and hand it over.
 
-**1. Pick the mode for each part.** After the plan (or every part of it) is
-written and self-reviewed, choose the recommended mode for each part:
+**1. Pick the mode for each part.** After the plan (or, for a split, the
+index and part 1) is written and self-reviewed, choose the recommended mode
+for each part; for a part not yet written, judge from its row in the
+index:
 
 - **superpowers:subagent-driven-development** - A fresh subagent implements each task and a fresh reviewer checks it before the next one starts, then a whole-branch review at the end. Most thorough; costs a fresh context per task and per review.
 - **superpowers:executing-plans** - The executor implements every task itself in its own session, the way this harness runs work, then one fresh reviewer on the most capable model checks the whole branch. Cheapest and fastest; no independent review until the end. Runs well with a mid-tier session model, since the plan carries the design.
@@ -313,15 +336,26 @@ part, in execution order:
 ````
 
 Write each prompt as Markdown under its heading, never inside a code
-block, so it reads well in the file and pastes cleanly.
+block, so it reads well in the file. The closing message is different: it
+puts the part 1 prompt in a `markdown` code block (step 4).
 
 **3. What each prompt contains,** in this order: one sentence, then a
 bullet per item with a bold label. Put every path, branch and skill name in
-inline code.
+inline code. In normal mode, a split plan's later parts are not written
+yet, so their prompts open with a different sentence that names the part's
+future file:
 
 ```markdown
 Execute part N of M of the implementation plan at `<plan path>` (spec: `<spec path>`).
+```
 
+```markdown
+Write, then execute part N of M of the plan indexed at `<index path>` (spec: `<spec path>`): use `superpowers:writing-plans` (Writing a Later Part) to write it to `<part path>` against the code earlier parts produced, wait for your human partner's go-ahead, then execute it.
+```
+
+Then the bullets:
+
+```markdown
 - **Skill:** use `superpowers:<subagent-driven-development|executing-plans>`.
 - **Why this mode:** <one sentence>.
 - **Branch:** work on branch `<branch from the index>`.
@@ -335,6 +369,9 @@ Execute part N of M of the implementation plan at `<plan path>` (spec: `<spec pa
 - **Previous part:** every part after part 1.
 - **Not the last part:** every part except the last.
 
+Under autopilot every part is written before its prompt, so every prompt
+opens with "Execute".
+
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover
 prompt, laid out like this. Keep the bold labels word for word; they are
@@ -344,16 +381,20 @@ how your human partner finds the list and the prompt:
 Plan complete: `<plan path or index path>`.
 
 **Where to focus** when you review it:
-1. <2–5 points, most important first: split boundaries, rulings on ambiguity, the Review Focus section, anything the spec left loose, part writers' open questions>
+1. <2–5 points, most important first: split boundaries, the Cross-Part Interfaces, rulings on ambiguity, the Review Focus section, anything the spec left loose, part writers' open questions>
 
 **Handover:** recommended mode <mode>, because <reason>. Paste this into a fresh session once the plan looks right:
 
+```markdown
 <part 1 prompt>
+```
 
-The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session.
+The other parts' prompts are in `<handover path>`. Run them in order, each in a fresh session: each one writes its part against the code the earlier parts produced, shows it to you, then executes it.
 ````
 
-Drop the last line when there is one part. Then wait for your human partner
+The prompt goes in the code block as written in the handover file, so it
+copies in one piece with its Markdown intact. Drop the last line when
+there is one part. Then wait for your human partner
 to review the plan. Do not start executing it.
 
 **Under autopilot** (superpowers:autopilot is driving), skip the message and

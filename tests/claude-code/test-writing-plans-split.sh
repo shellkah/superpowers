@@ -34,8 +34,18 @@ echo "Test 3: When parts get written..."
 output=$(run_claude_fork "Read the superpowers:writing-plans skill. Outside autopilot, are all parts of a split plan written before any part executes? Under autopilot? Answer using exactly this structure:
 All parts up front outside autopilot: <yes or no>
 All parts up front under autopilot: <yes or no>" "$T")
-assert_contains "$output" "All parts up front outside autopilot:[^a-z]*yes\b" "Normal mode writes every part up front" || exit 1
+assert_contains "$output" "All parts up front outside autopilot:[^a-z]*no\b" "Normal mode writes parts just in time" || exit 1
 assert_contains "$output" "All parts up front under autopilot:[^a-z]*no\b" "Autopilot writes parts one at a time" || exit 1
+echo ""
+
+echo "Test 3b: Later parts in normal mode..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill. Outside autopilot, a plan is split into 3 parts. Which parts does the planning session write, when is part 2 written, and what does part 2's handover prompt tell the fresh session to do first? Answer using exactly this structure:
+Planning session writes: <which files>
+Part 2 written: <when>
+Part 2 handover first step: <what>" "$T")
+assert_contains "$output" "Planning session writes:.*index.*part 1" "Planning session writes the index and part 1" || exit 1
+assert_contains "$output" "Part 2 written:.*\\(after\\|once\\|start\\|handover\\|own session\\)" "Part 2 is written later, in its own session" || exit 1
+assert_contains "$output" "Part 2 handover first step:.*\\([Ww]rite\\|complete\\)" "Part 2's prompt writes the part first" || exit 1
 echo ""
 
 echo "Test 4: Part writer content, length, handover..."

@@ -377,7 +377,7 @@ Then the bullets:
 - **Branch:** work on branch `<branch from the index>`.
 - **Workspace:** set up the workspace as the skill says.
 - **Previous part:** continue on that branch in the worktree part N-1 used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
-- **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.
+- **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes. Before the plan's workspace is deleted, add a `## Rulings` section at the end of that file with every `Ruling:` and `minor (deferred)` line from the ledger: the next part's writer plans against them.
 ```
 
 - **Branch:** split plans only.

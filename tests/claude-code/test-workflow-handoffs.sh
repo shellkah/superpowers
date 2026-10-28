@@ -35,4 +35,21 @@ assert_contains "$output" "Executor report has an acceptance line:[^a-z]*yes\b" 
 assert_contains "$output" "Summary reports the acceptance check:[^a-z]*yes\b" "Summary reports acceptance" || exit 1
 echo ""
 
+echo "Test 3: Rulings survive between parts outside autopilot..."
+output=$(run_claude_fork "Read the superpowers:writing-plans skill and its part-writer prompt (skills/writing-plans/part-writer-prompt.md). Outside autopilot, part 1 of a 3-part split plan finishes, and its executor made rulings about what the spec means. Answer using exactly this structure:
+Where part 1's rulings are kept for part 2: <the file, or not stated>
+Part 2's writer reads them: <yes, no, or not stated>
+$NS" "$T" --add-dir "$SKILLS_DIR")
+assert_contains "$output" "kept for part 2:.*plan file" "Rulings kept in the part's plan file" || exit 1
+assert_not_contains "$output" "kept for part 2:[^a-z]*not stated" "Where they are kept is stated" || exit 1
+assert_contains "$output" "Part 2's writer reads them:[^a-z]*yes\b" "The next writer reads them" || exit 1
+echo ""
+
+echo "Test 4: The PR lists the rulings..."
+output=$(run_claude_fork "Read the superpowers:finishing-a-development-branch skill. When you push and open a pull request for work executed from a plan, does the PR description list the rulings made during execution? Answer using exactly this structure:
+PR lists rulings: <yes, no, or not stated>
+$NS" "$T")
+assert_contains "$output" "PR lists rulings:[^a-z]*yes\b" "PR lists rulings" || exit 1
+echo ""
+
 echo "=== All workflow handoff tests passed ==="

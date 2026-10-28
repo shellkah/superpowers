@@ -127,6 +127,11 @@ tooling — its CLI if one is available, or the creation URL most forges
 print when you push — following the repo's PR template and conventions if
 present, and report the URL to your human partner.
 
+If the work ran from a plan, the description lists the decisions made on
+your human partner's behalf: the "Rulings I made" and "Deferred minors"
+from the executor's final message, and, for a split plan, each earlier
+part's `## Rulings` section.
+
 Keep the worktree — your human partner iterates on PR feedback there.
 
 ### Option 3: Keep As-Is

@@ -74,4 +74,11 @@ $NS" "$T")
     echo ""
 done
 
+echo "Test 7: A review's base covers every commit of the work..."
+output=$(run_claude_fork "Read the superpowers:requesting-code-review skill. Answer using exactly this structure:
+Default BASE_SHA is HEAD~1: <yes or no>
+$NS" "$T")
+assert_contains "$output" "Default BASE_SHA is HEAD~1:[^a-z]*no\b" "HEAD~1 is not the default base" || exit 1
+echo ""
+
 echo "=== All workflow handoff tests passed ==="

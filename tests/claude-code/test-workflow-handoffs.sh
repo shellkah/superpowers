@@ -63,4 +63,15 @@ assert_contains "$output" "Review before integrating:[^a-z]*yes\b" "Small change
 assert_contains "$output" "Ends with:.*finishing" "Small change ends with finishing" || exit 1
 echo ""
 
+for skill in executing-plans subagent-driven-development; do
+    echo "Test 6 ($skill): A part's final review covers its own work..."
+    output=$(run_claude_fork "Read the superpowers:$skill skill. You are executing part 2 of a 3-part split plan; part 1's commits are already on the branch. Answer using exactly this structure:
+Part 1's commits in this part's final review: <yes, no, or not stated>
+Part 3's final review covers: <part 3 only, the whole branch, or not stated>
+$NS" "$T")
+    assert_contains "$output" "Part 1's commits in this part's final review:[^a-z]*no\b" "A part reviews its own range" || exit 1
+    assert_contains "$output" "Part 3's final review covers:.*whole branch" "The last part reviews the whole branch" || exit 1
+    echo ""
+done
+
 echo "=== All workflow handoff tests passed ==="

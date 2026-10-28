@@ -235,7 +235,11 @@ mark the todo complete and take the next task.
 
 Run `../subagent-driven-development/scripts/review-package PLAN_FILE MERGE_BASE HEAD`
 (MERGE_BASE = the commit the branch started from, e.g.
-`git merge-base main HEAD`) and review from the file it prints.
+`git merge-base main HEAD`) and review from the file it prints. A part
+of a split plan that is not the last (its header says Part N of M, N
+below M) uses Task 1's base from the ledger instead, so it reviews only
+its own work. The last part reviews the whole branch, so one review sees
+the parts together.
 
 **With a subagent tool:** dispatch the reviewer on the most capable
 available model — the whole-branch review is a judgment task — using

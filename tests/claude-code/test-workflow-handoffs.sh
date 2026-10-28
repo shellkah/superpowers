@@ -52,4 +52,15 @@ $NS" "$T")
 assert_contains "$output" "PR lists rulings:[^a-z]*yes\b" "PR lists rulings" || exit 1
 echo ""
 
+echo "Test 5: A small change has a defined path..."
+output=$(run_claude_fork "Read the superpowers:brainstorming skill. Outside autopilot, you are on main in a software repo, and your human partner approved a small change in chat. Answer using exactly this structure:
+Where it's built: <a new branch, main, or not stated>
+Review before integrating: <yes, no, or not stated>
+Ends with: <skill name, or not stated>
+$NS" "$T")
+assert_contains "$output" "Where it's built:.*new branch" "Small change on a new branch" || exit 1
+assert_contains "$output" "Review before integrating:[^a-z]*yes\b" "Small change gets a review" || exit 1
+assert_contains "$output" "Ends with:.*finishing" "Small change ends with finishing" || exit 1
+echo ""
+
 echo "=== All workflow handoff tests passed ==="

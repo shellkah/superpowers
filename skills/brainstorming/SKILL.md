@@ -176,6 +176,12 @@ words. They can override it.
 | A small change | in chat | build it through the normal workflow |
 | A project with a written design | a written design document | a full plan (for software: superpowers:writing-plans) |
 
+**The normal workflow for a small change** in software: work on a
+branch, never on main or master unless they say so. Test first
+(superpowers:test-driven-development), run the check its description
+names, then superpowers:requesting-code-review and
+superpowers:finishing-a-development-branch.
+
 If it grows mid-task, stop, say so, and step up a size.
 
 If this is really several independent projects, say so, agree on an

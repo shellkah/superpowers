@@ -76,4 +76,20 @@ assert_contains "$output" "First message says what you looked at:[^a-z]*no\b" "W
 assert_contains "$output" "Skill explicitly says a picker is not a checklist:[^a-z]*yes\b" "Picker is not a checklist" || exit 1
 echo ""
 
+echo "Test 7: Deeper, not bigger..."
+output=$(run_claude_fork "Read the superpowers:brainstorming skill. Answer using exactly this structure:
+Extra scope a top professional would add: <add it or leave it out>
+Start from: <their summary or the real material>
+Tests you write yourself show it's right: <yes or no>
+Written design says how you'll know it's right: <yes or no>
+A small change gets the deeper pass: <none, one line, or all of it>
+A quick, clear task gets the deeper pass: <yes or no>" "$T")
+assert_contains "$output" "Extra scope a top professional would add:.*leave" "Deeper, not bigger" || exit 1
+assert_contains "$output" "Start from:.*real" "Raw material over a summary" || exit 1
+assert_contains "$output" "Tests you write yourself show it's right:[^a-z]*no\b" "The check comes from outside" || exit 1
+assert_contains "$output" "Written design says how you'll know it's right:[^a-z]*yes\b" "The design names the check" || exit 1
+assert_contains "$output" "A small change gets the deeper pass:.*one line" "Small change: one line" || exit 1
+assert_contains "$output" "A quick, clear task gets the deeper pass:[^a-z]*no\b" "Quick task skips it" || exit 1
+echo ""
+
 echo "=== All brainstorming focus tests passed ==="

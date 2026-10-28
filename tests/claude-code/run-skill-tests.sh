@@ -84,6 +84,7 @@ tests=(
     "test-writing-plans-split.sh"
     "test-brainstorming-focus.sh"
     "test-autopilot.sh"
+    "test-workflow-handoffs.sh"
 )
 
 # Integration tests (slow, full execution)

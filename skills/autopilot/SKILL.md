@@ -169,8 +169,9 @@ the run is and what is pending. Continue from there.
       pasted.
    6. **Read the executor's report.** BLOCKED: see Blockers. PAUSED: see
       Pausing; it is not a blocker. DONE: keep its branch, worktree,
-      record path, its `[review]` rulings, and its routine-ruling and
-      deferred-minor counts for the next part and the summary.
+      record path, its `[review]` rulings, its `Acceptance` line, and its
+      routine-ruling and deferred-minor counts for the next part and the
+      summary.
 
    In step 4 you read reports and `state.md`, never a part file, the spec,
    or product code: the writers, the checker and the executors read those.
@@ -230,6 +231,8 @@ the run is and what is pending. Continue from there.
    - what was built, part by part,
    - tests and final-review outcomes for each part, and any checker
      `Length` note,
+   - the acceptance check: its result, the steps for your human partner
+     to try it, or that the spec named none,
    - routine rulings and deferred minors as counts, with a pointer to the
      PR description where each is listed,
    - open items,

@@ -58,6 +58,9 @@ with exactly these sections:
 ## Global Constraints
 <from the spec, one line each, shared by all parts>
 
+## Acceptance
+<the spec's check from outside, as the spec gives it; the last part's last task runs it>
+
 ## Parts
 
 | Part | Name | Deliverable | Tasks (rough) | Depends on |
@@ -209,6 +212,17 @@ break the program. Write the list here, once, with the spec in front of
 you. Then, for each line, add the test that pins it to the task that
 owns the code, in that task's own step style.]
 
+## Acceptance
+
+[The spec's check from outside ("how you'll know it's right"): the exact
+command, input or steps, and what passing looks like. The plan's last
+task runs it. If it needs a person (someone trying it), the last task
+readies it instead: what to launch and what to try, and the executor
+hands those steps to your human partner in its final message. In a split
+plan only the last part carries it; earlier parts write "In part M". A
+spec with no such check gets "None in the spec", and the closing
+message's Where to focus says so.]
+
 ---
 ```
 
@@ -296,6 +310,8 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 **4. Review Focus:** For each input class or failure mode the spec implies, is there a task whose tests exercise it? The five uncovered ones most likely to bite a person go in the Review Focus section, and each line there gets its test added to the owning task. An empty section means you checked and found none, not that you skipped the check.
 
 **5. Proportion:** Compare the plan's length to the spec's. A plan several times longer than the spec it implements is a transcript of the program, not a plan. If code blocks are most of the document, replace bodies with signatures, test names and assertions, and check that each step is still unambiguous.
+
+**6. Acceptance:** Does the last task run the Acceptance check, or ready it for a person? If not, add that to the last task, in its step style.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 

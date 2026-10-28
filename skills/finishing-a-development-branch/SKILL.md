@@ -15,7 +15,11 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 Run the project's full test suite (`npm test` / `cargo test` / `pytest` / `go test ./...`).
 
-**If tests fail**, report the failures and stop — the menu comes after a green suite:
+If the work ran from a plan whose `## Acceptance` names a check that runs
+without a person, run that check too, on this tree. A check that needs a
+person goes in your menu message, as the steps to try.
+
+**If tests or the acceptance check fail**, report the failures and stop — the menu comes after a green suite:
 
 ```
 Tests failing (<N> failures). Must fix before completing:

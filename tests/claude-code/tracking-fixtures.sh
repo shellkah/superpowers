@@ -248,3 +248,383 @@ check() {
         FAILURES=$((FAILURES + 1))
     fi
 }
+
+# ---------------------------------------------------------------------------
+# Scenario fixtures and shared checks
+# ---------------------------------------------------------------------------
+
+export ISSUE12='**Issue:** https://github.com/acme/widgets/issues/12 (opened for this work)'
+SPEC_PATH=docs/superpowers/specs/2026-01-01-version-flag-design.md
+PLAN_PATH=docs/superpowers/plans/2026-01-01-version-flag.md
+INDEX_PATH=docs/superpowers/plans/2026-01-01-version-flag-index.md
+PART_PATH=docs/superpowers/plans/2026-01-01-version-flag-part-1-core.md
+OPENED_MARKER='<!-- superpowers:opened -->'
+
+# Write the spec for the --version flag.
+# Usage: _write_spec <work> [<issue-line>]
+_write_spec() {
+    local f="$1/$SPEC_PATH"
+    mkdir -p "$(dirname "$f")"
+    {
+        echo '# hello.sh --version'
+        echo
+        if [[ -n "${2:-}" ]]; then
+            echo "$2"
+            echo
+        fi
+        echo '## Why'
+        echo
+        echo 'People who copy hello.sh around cannot tell which release they are running, so bug reports never say which version misbehaved.'
+        echo
+        echo '## Goals'
+        echo
+        echo '- `./hello.sh --version` prints the contents of the VERSION file and exits 0.'
+        echo '- A VERSION file at the repo root holds the release number, starting at 1.0.0.'
+        echo
+        echo "## How we'll know it's right"
+        echo
+        echo '`bash test.sh` checks both the greeting and the version output.'
+    } > "$f"
+}
+
+# The two tasks of the plan, as the unsplit plan and the part file list them.
+_plan_tasks() {
+    echo '### Task 1: VERSION file'
+    echo
+    echo '- [ ] Create `VERSION` containing `1.0.0`; commit.'
+    echo
+    echo '### Task 2: --version flag'
+    echo
+    echo '- [ ] Make `./hello.sh --version` print the contents of VERSION; add the check to test.sh; commit.'
+}
+
+# Usage: _commit_and_push_main <work> <message>
+_commit_and_push_main() {
+    git -C "$1" add -A docs
+    git -C "$1" commit -q -m "$2"
+    git -C "$1" push -q origin main > /dev/null 2>&1
+}
+
+# Usage: version_flag_docs <work> [<issue-line>]
+version_flag_docs() {
+    local work="$1" issue="${2:-}" f
+    _write_spec "$work" "$issue"
+    f="$work/$PLAN_PATH"
+    mkdir -p "$(dirname "$f")"
+    {
+        echo '# hello.sh --version Implementation Plan'
+        echo
+        if [[ -n "$issue" ]]; then
+            echo "$issue"
+            echo
+        fi
+        echo '**Goal:** `./hello.sh --version` prints the release number from VERSION.'
+        echo
+        echo "**Spec:** \`$SPEC_PATH\`"
+        echo
+        _plan_tasks
+    } > "$f"
+    _commit_and_push_main "$work" "Add version flag spec and plan"
+}
+
+# Usage: split_plan_docs <work> <issue-line>
+split_plan_docs() {
+    local work="$1" issue="$2"
+    _write_spec "$work" "$issue"
+    mkdir -p "$work/docs/superpowers/plans"
+    {
+        echo '# hello.sh --version Implementation Plan'
+        echo
+        echo "$issue"
+        echo
+        echo '## Parts'
+        echo
+        echo '| # | Part | Covers |'
+        echo '|---|------|--------|'
+        echo '| 1 | `core` | VERSION file and `--version` |'
+        echo '| 2 | `help` | a `--help` text |'
+    } > "$work/$INDEX_PATH"
+    {
+        echo '# hello.sh --version Implementation Plan: core'
+        echo
+        echo "**Part 1 of 2** · Index: \`$INDEX_PATH\`"
+        echo
+        echo "$issue"
+        echo
+        echo '**Goal:** `./hello.sh --version` prints the release number from VERSION.'
+        echo
+        echo "**Spec:** \`$SPEC_PATH\`"
+        echo
+        _plan_tasks
+    } > "$work/$PART_PATH"
+    _commit_and_push_main "$work" "Add version flag spec and split plan"
+}
+
+# Usage: opened_issue_12 [<status>] [plan|noplan]
+opened_issue_12() {
+    local status="${1:-Planning}" mode="${2:-plan}"
+    {
+        echo "**Status:** $status"
+        echo
+        echo 'hello.sh will print its release number with --version, so bug reports can say which version misbehaved.'
+        echo
+        echo "Spec: \`$SPEC_PATH\`"
+        [[ "$mode" == noplan ]] || echo "Plan: \`$PLAN_PATH\`"
+        echo "$OPENED_MARKER"
+    } | fake_issue 12 'Add a --version flag to hello.sh' - shellkah
+    if [[ "$mode" != noplan ]]; then
+        printf '%s\n' 'The plan is written and waiting for review.' '<!-- superpowers:plan-ready -->' \
+            | fake_issue_comment 12 -
+    fi
+}
+
+# Usage: existing_issue_4 [<assignee>]
+existing_issue_4() {
+    printf '%s\n' 'It would help to see which version of hello.sh is installed.' \
+        | fake_issue 4 'Print version information' - "${1:-}"
+}
+
+# Cut version-flag from <base>, commit Task 1, print the directory to run in.
+# Usage: work_branch <work> <base> worktree|checkout
+work_branch() {
+    local work="$1" base="$2" mode="$3" dir
+    case "$mode" in
+        worktree)
+            mkdir -p "$work/.git/info"
+            grep -qxF '/.worktrees/' "$work/.git/info/exclude" 2> /dev/null \
+                || echo '/.worktrees/' >> "$work/.git/info/exclude"
+            git -C "$work" worktree add -q -b version-flag "$work/.worktrees/version-flag" "$base" > /dev/null 2>&1 || return 1
+            dir="$work/.worktrees/version-flag"
+            ;;
+        checkout)
+            git -C "$work" checkout -q -b version-flag "$base" > /dev/null 2>&1 || return 1
+            dir="$work"
+            ;;
+        *) echo "work_branch: unknown mode: $mode" >&2; return 1 ;;
+    esac
+    echo '1.0.0' > "$dir/VERSION"
+    git -C "$dir" add VERSION
+    git -C "$dir" commit -q -m "Add VERSION file"
+    echo "$dir"
+}
+
+# Usage: task2_commit <dir>
+task2_commit() {
+    local dir="$1"
+    cat > "$dir/hello.sh" <<'SH'
+#!/bin/sh
+if [ "$1" = "--version" ]; then
+    cat "$(dirname "$0")/VERSION"
+    exit 0
+fi
+echo "Hello, ${1:-world}!"
+SH
+    cat >> "$dir/test.sh" <<'SH'
+if [ "$(./hello.sh --version)" != "$(cat VERSION)" ]; then
+    echo "FAIL version"
+    exit 1
+fi
+SH
+    git -C "$dir" add hello.sh test.sh
+    git -C "$dir" commit -q -m "Add --version flag"
+}
+
+# Usage: push_work <dir>
+push_work() { git -C "$1" push -q -u origin version-flag > /dev/null 2>&1; }
+
+# Usage: draft_pr_13 <base> [<issue>]
+draft_pr_13() {
+    local base="$1" issue="${2:-12}" blob=https://github.com/acme/widgets/blob/version-flag
+    printf '%s\n' 'hello.sh gains a --version flag.' '' "Closes #$issue" | fake_pr 13 version-flag "$base" true -
+    printf '%s\n' 'Draft pull request: https://github.com/acme/widgets/pull/13' '<!-- superpowers:draft-pr -->' \
+        | fake_issue_comment "$issue" -
+    if [[ "$issue" == 12 ]]; then
+        issue_json 12 | jq -j '.body' \
+            | sed -E -e '1s/.*/**Status:** Building: draft PR #13/' \
+                -e "s#\`(docs/superpowers/[^\`]*)\`#$blob/\\1#g" \
+            | fake_issue_body 12 -
+    fi
+}
+
+# Usage: dev_base <work>
+dev_base() {
+    git -C "$1" branch dev main
+    git -C "$1" push -q origin dev > /dev/null 2>&1
+}
+
+# Print the sha of refs/heads/<branch> in <root>/remote.git, or nothing.
+# Usage: bare_ref <root> <branch>
+bare_ref() { git --git-dir="$1/remote.git" rev-parse -q --verify "refs/heads/$2" 2> /dev/null || true; }
+
+# Usage: first_line_after_title <file>
+first_line_after_title() {
+    awk 'found && NF { print; exit } /^# / && !found { found = 1 }' "$1"
+}
+
+# Source lines of 40 or more characters (leading #, -, * and spaces stripped)
+# that appear verbatim in the text file.
+# Usage: copied_lines <text-file> <source-file>
+copied_lines() {
+    local line
+    while IFS= read -r line; do
+        line="$(sed -E 's/^[#*[:space:]-]+//' <<< "$line")"
+        [[ ${#line} -ge 40 ]] || continue
+        if grep -qF -- "$line" "$1"; then
+            echo "$line"
+        fi
+    done < "$2"
+}
+
+# ---- prompt pieces ----
+export HEADLESS='This is a headless run with no question tool: ask any question in plain text with numbered options, then end your turn.'
+export C_APPROVED='The spec at docs/superpowers/specs/2026-01-01-version-flag-design.md is approved: your human partner just said it looks good.'
+export C_EXEC='You are executing the plan at docs/superpowers/plans/2026-01-01-version-flag.md with superpowers:executing-plans, in this worktree.'
+export C_FINISH='Implementation of the plan at docs/superpowers/plans/2026-01-01-version-flag.md is complete on this branch: its tests pass, and there were no rulings or deferred minors. You are in superpowers:finishing-a-development-branch.'
+
+# Usage: c_brain [<extra>]
+c_brain() {
+    printf '%s' "We are in superpowers:brainstorming for this request: \"Add a --version flag to hello.sh.${1:-}\" The work is sized as a small change, and this is the last round of questions."
+}
+
+# Usage: moment <what> <Section>
+moment() {
+    printf '%s' "If this work tracks an issue, $1 as superpowers:tracking-work-in-issues says ($2)"
+}
+
+# ---- running a session ----
+
+# Run a prompt in <dir>; the output goes to the global OUT.
+# Usage: run_moment <dir> <timeout> <prompt>
+run_moment() { _run_session OUT "$1" "$2" "$3"; }
+
+# Same, continuing the last session in <dir>; the output goes to OUT2.
+# Usage: continue_moment <dir> <timeout> <message>
+continue_moment() { _run_session OUT2 "$1" "$2" "$3" --continue; }
+
+_run_session() {
+    local var="$1" dir="$2" t="$3" prompt="$4" rc=0 out
+    shift 4
+    out="$(cd "$dir" && run_claude_fork "$prompt" "$t" --permission-mode bypassPermissions --strict-mcp-config "$@")" || rc=$?
+    printf -v "$var" '%s' "$out"
+    if [[ $rc -eq 124 ]]; then
+        echo "  [FAIL] session timed out after ${t}s; output so far:"
+        sed 's/^/    /' <<< "$out"
+        FAILURES=$((FAILURES + 1))
+        return 1
+    fi
+    if [[ $rc -ne 0 ]]; then
+        echo "  [note] claude exited with status $rc"
+    fi
+    return 0
+}
+
+# Print the session output and the call log, for a failing test.
+show_run_context() {
+    echo "  --- final output ---"
+    sed 's/^/    /' <<< "${OUT:-}"
+    if [[ -n "${OUT2:-}" ]]; then
+        echo "  --- second turn output ---"
+        sed 's/^/    /' <<< "$OUT2"
+    fi
+    echo "  --- gh log ---"
+    if [[ -s "${FAKE_GH_LOG:-}" ]]; then sed 's/^/    /' "$FAKE_GH_LOG"; else echo "    (no gh calls)"; fi
+}
+
+# ---- naming a number in a logged call ----
+
+# jq: the first positional word of a call after its two command words.
+_POS_JQ='def positional:
+    .argv[2:] as $a
+    | (reduce range(0; $a|length) as $i ({skip: false, pos: null};
+        if .skip then .skip = false
+        elif ($a[$i] | startswith("-")) then
+            (if ($a[$i] | test("=")) or ($a[$i] | IN("--draft", "-d", "--comments", "--delete-branch", "--web", "-w")) then . else .skip = true end)
+        elif .pos == null then .pos = $a[$i]
+        else . end)).pos;'
+
+# Logged calls whose positional is <N> or a URL ending /issues/<N> or /pull/<N>.
+# Usage: named_calls <word1> <word2> <N>
+named_calls() {
+    gh_log_calls "$1" "$2" | jq -c --arg n "$3" "$_POS_JQ"'
+        select(positional as $p | $p != null and ($p == $n or ($p | test("/(issues|pull)/" + $n + "$"))))'
+}
+
+# Usage: named_count <word1> <word2> <N>
+named_count() { named_calls "$@" | awk 'END { print NR }'; }
+
+# Body of the n-th (default last) such call.
+# Usage: named_body <word1> <word2> <N> [<n>]
+named_body() { named_calls "$1" "$2" "$3" | _nth "${4:-}" | jq -r '.body // empty'; }
+
+# One line per such call: the last non-empty line of its body.
+# Usage: named_last_lines <word1> <word2> <N>
+named_last_lines() {
+    named_calls "$@" | jq -r '(.body // "") | split("\n") | map(select(test("\\S"))) | (last // "")'
+}
+
+# Body of the last such call whose last non-empty line is <marker>.
+# Usage: named_body_ending <word1> <word2> <N> <marker>
+named_body_ending() {
+    named_calls "$1" "$2" "$3" | jq -rs --arg m "$4" \
+        'map(select((.body // "") | split("\n") | map(select(test("\\S"))) | (last // "") == $m)) | (last // {}) | (.body // "")'
+}
+
+# Usage: named_has_flag <word1> <word2> <N> <flag-regex> [<value>]
+named_has_flag() {
+    local hits
+    hits="$(named_calls "$1" "$2" "$3" | jq -r --arg re "$4" --arg val "${5-}" --argjson chk "$([[ $# -ge 5 ]] && echo true || echo false)" \
+        "$_GH_FLAG_JQ"' flagvals($re) | select(length > 0 and (($chk | not) or any(.[]; . == $val))) | "hit"')"
+    [[ -n "$hits" ]]
+}
+
+# ---- small text helpers ----
+first_line() { sed -n '1p' <<< "$1"; }
+last_nonempty() { awk 'NF { l = $0 } END { print l }' <<< "$1"; }
+hasf() { grep -qF -- "$2" <<< "$1"; }
+has_i() { grep -qi -- "$2" <<< "$1"; }
+has_ei() { grep -qiE -- "$2" <<< "$1"; }
+not() { ! "$@"; }
+
+# ---- shared checks ----
+
+# Everything every scenario must keep true. <dir> is where the session ran.
+# Usage: common_checks <dir>
+common_checks() {
+    local dir="$1" v bad f n i cmd w1 w2 cmds
+    v="$(assert_calls_name_repo acme/widgets)" || true
+    if [[ -z "$v" ]]; then check "every gh call names acme/widgets" true; else
+        sed 's/^/    /' <<< "$v"
+        check "every gh call names acme/widgets" false
+    fi
+
+    bad=""
+    f="$(mktemp)"
+    for cmd in "issue create" "issue comment" "issue edit" "issue close" "pr create" "pr close"; do
+        read -r w1 w2 <<< "$cmd"
+        n="$(gh_log_count "$w1" "$w2")"
+        for ((i = 1; i <= n; i++)); do
+            gh_log_body "$w1" "$w2" "$i" > "$f"
+            v="$(issue_text_violations "$f")"
+            [[ -z "$v" ]] || bad+="$cmd #$i body: $(tr '\n' ';' <<< "$v")"$'\n'
+        done
+    done
+    for cmd in "issue create" "pr create"; do
+        read -r w1 w2 <<< "$cmd"
+        n="$(gh_log_count "$w1" "$w2")"
+        for ((i = 1; i <= n; i++)); do
+            gh_log_arg "$w1" "$w2" '--title|-t' "$i" > "$f"
+            v="$(issue_text_violations "$f")"
+            [[ -z "$v" ]] || bad+="$cmd #$i title: $(tr '\n' ';' <<< "$v")"$'\n'
+        done
+    done
+    rm -f "$f"
+    if [[ -z "$bad" ]]; then check "posted texts follow the writing rules" true; else
+        sed 's/^/    /' <<< "$bad"
+        check "posted texts follow the writing rules" false
+    fi
+
+    check "no pr merge call" test "$(gh_log_count pr merge)" = 0
+    cmds="$(session_commands "$dir")"
+    check "no force push" not grep -qE -e 'git push.*(--force|--force-with-lease|[[:space:]]-f([[:space:]]|$)|[[:space:]]\+)' <<< "$cmds"
+    check "no curl or api.github.com" not grep -qE -e 'curl|api\.github\.com' <<< "$cmds"
+}

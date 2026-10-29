@@ -80,6 +80,7 @@ tests=(
     "test-sdd-workspace.sh"
     "test-executing-plans-scripts.sh"
     "test-fake-gh.sh"
+    "test-forge-commands.sh"
     "test-subagent-driven-development.sh"
     "test-writing-plans-handover.sh"
     "test-writing-plans-split.sh"

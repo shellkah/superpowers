@@ -33,6 +33,7 @@ run_moment "$work" "$T" 'We have agreed on a small change and I approve it: make
 check "no issue created yet" test "$(gh_log_count issue create)" = 0
 check "the output mentions public" has_i "$OUT" 'public'
 check "the output shows a Status line" has_i "$OUT" 'Status:'
+check_isolation "$work"
 echo ""
 
 echo "Turn 2: after the go-ahead, the shown text is posted..."
@@ -45,6 +46,7 @@ check "the logged title appears verbatim in the text shown before posting" conta
 check "the logged body is a substring of the text shown before posting" contains_collapsed "$OUT" "$(body_without_marker "$body")"
 check "the body's first line is the Building status" test "$(first_line "$body")" = '**Status:** Building'
 check "the body ends with the opened marker" test "$(last_nonempty "$body")" = "$OPENED_MARKER"
+check_isolation "$work"
 common_checks "$work"
 echo ""
 

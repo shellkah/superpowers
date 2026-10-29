@@ -233,6 +233,25 @@ has "top-level command" 'echo top; line2'
 has "subagent command" 'git push --force'
 eq "only bash calls" 2 "$(wc -l <<<"$OUT" | tr -d ' ')"
 
+echo "-- 15c session_repo_reads"
+fresh
+SAVED_HOME=$HOME
+export HOME="$G/home"
+SD="$G/proj2"
+mkdir -p "$SD"
+RP=$(cd "$SD" && pwd -P)
+PD="$HOME/.claude/projects/$(echo "$RP" | sed 's|[^a-zA-Z0-9]|-|g')"
+mkdir -p "$PD/sess1/subagents"
+REPO=$(cd "$SCRIPT_DIR/../.." && pwd -P)
+jq -n -c --arg a "$REPO/skills/x/SKILL.md" --arg b "$REPO/docs/superpowers/plans/x.md" --arg d "$G/proj2/docs/superpowers/specs/y.md" \
+    '{message:{content:[{type:"tool_use",name:"Read",input:{file_path:$a}},{type:"tool_use",name:"Read",input:{file_path:$b}},{type:"tool_use",name:"Read",input:{file_path:$d}}]}}' >"$PD/sess1.jsonl"
+jq -n -c --arg c "cat $REPO/tests/claude-code/foo" '{message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
+rc "reads found" 1 session_repo_reads "$SD"
+export HOME=$SAVED_HOME
+eq "two FAIL lines" 2 "$(grep -c '^\[FAIL\] session read the superpowers repo: ' <<<"$OUT")"
+has "plan read" 'Read '"$REPO"'/docs/superpowers/plans/x.md'
+has "bash read" 'Bash cat '"$REPO"'/tests/claude-code/foo'
+
 echo "-- 16 canary"
 fresh
 W=$(tracking_repo "$G/r")

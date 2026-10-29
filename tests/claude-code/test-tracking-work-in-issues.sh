@@ -69,6 +69,7 @@ wt="$(work_branch "$work" main worktree)"
 run_moment "$wt" "$T" "$C_EXEC Task 1 has just completed: its tests passed and it is committed. $(moment 'do what comes after Task 1' 'The Draft PR'), then stop before Task 2."
 check "no gh call" test "$(gh_log_total)" = 0
 check "version-flag was not pushed" test -z "$(bare_ref "$root" version-flag)"
+check_isolation "$wt"
 end_test
 echo ""
 
@@ -80,6 +81,7 @@ tracking_env "$root"
 run_moment "$work" "$T" 'We have agreed on a small change and I approve it: make hello.sh accept a --name option. Track this in an issue. Do not build anything yet: stop once the issue is taken care of.'
 check "no gh call" test "$(gh_log_total)" = 0
 check "the output mentions github or gitlab" has_i "$OUT" 'github\|gitlab'
+check_isolation "$work"
 end_test
 echo ""
 
@@ -91,13 +93,15 @@ tracking_env "$root"
 run_moment "$work" "$T" 'Fix the typo "teh" in README.md; it should be "the".'
 check "no gh call" test "$(gh_log_total)" = 0
 check "no offer to open an issue" not hasf "$OUT" 'Open a new issue'
+check_isolation "$work"
 end_test
 echo ""
 
 echo "Test 5: Autopilot rules (comprehension)..."
 begin_test
 unset FAKE_GH_LOG
-OUT="$(run_claude_fork "Read the superpowers:tracking-work-in-issues skill. Under autopilot, answer using exactly this structure:
+mkdir -p "$TEST_ROOT/t5"
+OUT="$(cd "$TEST_ROOT/t5" && run_claude_fork "Read the superpowers:tracking-work-in-issues skill. Under autopilot, answer using exactly this structure:
 Who makes forge calls: <who>
 Executors call gh: <yes or no>
 Issue opens when: <when>
@@ -113,6 +117,7 @@ check "Draft PR for a one-part plan: no" has_ei "$OUT" 'Draft PR for a one-part 
 check "Draft PR opened after: part 1" has_i "$OUT" 'Draft PR opened after:.*part 1'
 check "Public repo: show the text before posting: no" has_ei "$OUT" 'Public repo: show the text before posting:[^a-z]*no\b'
 check "an earlier build's PR says: Part of #" has_i "$OUT" "earlier build's PR says:.*Part of #"
+check_isolation "$TEST_ROOT/t5"
 end_test
 echo ""
 

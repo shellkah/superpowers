@@ -585,6 +585,45 @@ has_i() { grep -qi -- "$2" <<< "$1"; }
 has_ei() { grep -qiE -- "$2" <<< "$1"; }
 not() { ! "$@"; }
 
+# Print one "[FAIL] session read the superpowers repo: <tool> <path or command>"
+# line for every tool call, in any transcript of the sessions run from <dir>
+# (subagents included), that names a path under docs/ or tests/ of the
+# superpowers checkout (the repo run_claude_fork loads, and the main checkout
+# it belongs to). Paths under skills/ are allowed. Returns 1 when it printed.
+# Usage: session_repo_reads <dir> [<repo-root>]
+session_repo_reads() {
+    local real proj f root common main out prefixes hit=0 line
+    real="$(cd "$1" && pwd -P)"
+    proj="$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"
+    [[ -d "$proj" ]] || return 0
+    root="${2:-$(cd "$_FIXTURES_DIR/../.." && pwd -P)}"
+    common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2> /dev/null || true)"
+    main="$root"
+    [[ -z "$common" ]] || main="$(dirname "$common")"
+    prefixes="$(jq -n -c --arg a "$root" --arg b "$main" '[$a, $b] | unique | map([. + "/docs/", . + "/tests/"]) | add')"
+    while IFS= read -r f; do
+        out="$(jq -r --argjson p "$prefixes" 'try (.message.content[]? | select(.type == "tool_use") | .name as $n
+            | [.input | .. | strings | select(. as $s | any($p[]; . as $x | $s | contains($x)))] | first // empty
+            | gsub("\n"; "; ") | .[0:160] | "[FAIL] session read the superpowers repo: " + $n + " " + .) catch empty' "$f" 2> /dev/null)"
+        if [[ -n "$out" ]]; then
+            while IFS= read -r line; do echo "$line"; done <<< "$out"
+            hit=1
+        fi
+    done < <(find "$proj" -name '*.jsonl' | sort)
+    return $hit
+}
+
+# Count the isolation guard as one check; show what the session read.
+# Usage: check_isolation <dir>
+check_isolation() {
+    local v
+    v="$(session_repo_reads "$1")" || true
+    if [[ -z "$v" ]]; then check "session did not read the superpowers docs or tests" true; else
+        sed 's/^/    /' <<< "$v"
+        check "session did not read the superpowers docs or tests" false
+    fi
+}
+
 # ---- shared checks ----
 
 # Everything every scenario must keep true. <dir> is where the session ran.
@@ -627,4 +666,5 @@ common_checks() {
     cmds="$(session_commands "$dir")"
     check "no force push" not grep -qE -e 'git push.*(--force|--force-with-lease|[[:space:]]-f([[:space:]]|$)|[[:space:]]\+)' <<< "$cmds"
     check "no curl or api.github.com" not grep -qE -e 'curl|api\.github\.com' <<< "$cmds"
+    check_isolation "$dir"
 }

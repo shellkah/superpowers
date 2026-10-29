@@ -256,6 +256,31 @@ has "ls root" 'Bash ls '"$REPO"
 has "git -C root" 'Bash git -C '"$REPO"' log'
 check "skills reads are allowed" test "$(grep -c 'skills/' <<<"$OUT")" = 0
 
+echo "-- 15d named_* helpers (under set -u)"
+fresh
+gh issue close 7 --repo acme/widgets --reason 'not planned' --comment 'Dropped.
+<!-- superpowers:dropped -->' >/dev/null 2>&1
+gh issue close 3 --repo acme/widgets --reason completed >/dev/null 2>&1
+gh issue comment https://github.com/acme/widgets/issues/7 --repo acme/widgets --body 'first
+<!-- superpowers:a -->' >/dev/null
+gh issue comment 7 --repo acme/widgets --body 'second note
+<!-- superpowers:b -->' >/dev/null
+gh issue comment 3 --repo acme/widgets --body 'other' >/dev/null
+gh pr close 14 --repo acme/widgets --comment 'bye' >/dev/null 2>&1
+eq "named_count" 2 "$(named_count issue comment 7)"
+eq "named_count url positional" 1 "$(named_count issue comment 3)"
+eq "named_body last" "$(printf 'second note\n<!-- superpowers:b -->')" "$(named_body issue comment 7)"
+eq "named_body first" "$(printf 'first\n<!-- superpowers:a -->')" "$(named_body issue comment 7 1)"
+eq "named_last_lines" "<!-- superpowers:a -->|<!-- superpowers:b -->" "$(named_last_lines issue comment 7 | tr '\n' '|' | sed 's/|$//')"
+eq "named_body_ending" "$(printf 'first\n<!-- superpowers:a -->')" "$(named_body_ending issue comment 7 '<!-- superpowers:a -->')"
+eq "named_arg scoped to 7" 'not planned' "$(named_arg issue close 7 '--reason|-r')"
+eq "named_arg scoped to 3" completed "$(named_arg issue close 3 '--reason|-r')"
+eq "named_arg none" "" "$(named_arg issue close 99 '--reason|-r')"
+check "named_has_flag value" named_has_flag issue close 7 '--reason|-r' 'not planned'
+check "named_has_flag wrong value" not named_has_flag issue close 7 '--reason|-r' completed
+check "named_has_flag no value arg" named_has_flag pr close 14 '--comment|-c'
+eq "named_calls pr" 1 "$(named_calls pr close 14 | wc -l | tr -d ' ')"
+
 echo "-- 16 canary"
 fresh
 W=$(tracking_repo "$G/r")

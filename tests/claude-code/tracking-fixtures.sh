@@ -173,7 +173,7 @@ gh_log_body() {
 
 # n-th line of stdin (default: last)
 _nth() {
-    if [[ -n "$1" ]]; then sed -n "${1}p"; else tail -n 1; fi
+    if [[ -n "${1:-}" ]]; then sed -n "${1}p"; else tail -n 1; fi
 }
 
 _GH_FLAG_JQ='def flagvals($re):
@@ -624,7 +624,7 @@ named_body_ending() {
 # First value of a flag among calls naming <N> (last such call by default).
 # Usage: named_arg <word1> <word2> <N> <flag-regex>
 named_arg() {
-    named_calls "$1" "$2" "$3" | _nth | jq -r --arg re "$4" "$_GH_FLAG_JQ"' flagvals($re)[0] // empty'
+    named_calls "$1" "$2" "$3" | _nth "" | jq -r --arg re "$4" "$_GH_FLAG_JQ"' flagvals($re)[0] // empty'
 }
 
 # Usage: named_has_flag <word1> <word2> <N> <flag-regex> [<value>]

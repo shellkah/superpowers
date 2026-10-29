@@ -64,6 +64,7 @@ while [[ $# -gt 0 ]]; do
             echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
             echo "  test-writing-plans-integration.sh  writing-plans handover and split scenarios (~40 min; use --timeout 6000)"
             echo "  test-autopilot-integration.sh  autopilot end to end (~25 min; RUN_SPLIT=1 adds the two-part run, ~75 min; use --timeout 14400)"
+            echo "  test-tracking-work-in-issues-integration.sh  tracking skill moments against a stand-in gh (~60-90 min; TRACKING_JOBS=4 cuts it to ~25; use --timeout 7200)"
             exit 0
             ;;
         *)
@@ -87,6 +88,8 @@ tests=(
     "test-brainstorming-focus.sh"
     "test-autopilot.sh"
     "test-workflow-handoffs.sh"
+    "test-tracking-work-in-issues.sh"
+    "test-tracking-public-repo.sh"
 )
 
 # Integration tests (slow, full execution)
@@ -94,6 +97,7 @@ integration_tests=(
     "test-subagent-driven-development-integration.sh"
     "test-writing-plans-integration.sh"
     "test-autopilot-integration.sh"
+    "test-tracking-work-in-issues-integration.sh"
 )
 
 # Add integration tests if requested

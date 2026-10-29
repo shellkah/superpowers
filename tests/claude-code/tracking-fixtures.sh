@@ -587,12 +587,16 @@ not() { ! "$@"; }
 
 # Print one "[FAIL] session read the superpowers repo: <tool> <path or command>"
 # line for every tool call, in any transcript of the sessions run from <dir>
-# (subagents included), that names a path under docs/ or tests/ of the
-# superpowers checkout (the repo run_claude_fork loads, and the main checkout
-# it belongs to). Paths under skills/ are allowed. Returns 1 when it printed.
+# (subagents included), whose input names either superpowers checkout root
+# (the repo run_claude_fork loads, and the main checkout it belongs to)
+# anywhere except under <root>/skills/. So ls, git -C, cd and find on the root
+# and reads of docs/ or tests/ all count; reads of the skill do not. The
+# worktree sits inside the main checkout: <root>/skills/ is stripped for both
+# roots first, so a worktree skills/ path is never counted through the main
+# root's prefix. Returns 1 when it printed.
 # Usage: session_repo_reads <dir> [<repo-root>]
 session_repo_reads() {
-    local real proj f root common main out prefixes hit=0 line
+    local real proj f root common main out skills_re roots_re hit=0 line
     real="$(cd "$1" && pwd -P)"
     proj="$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"
     [[ -d "$proj" ]] || return 0
@@ -600,10 +604,13 @@ session_repo_reads() {
     common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2> /dev/null || true)"
     main="$root"
     [[ -z "$common" ]] || main="$(dirname "$common")"
-    prefixes="$(jq -n -c --arg a "$root" --arg b "$main" '[$a, $b] | unique | map([. + "/docs/", . + "/tests/"]) | add')"
+    root="$(sed 's/[][\.*^$()+?{|]/\\&/g' <<< "$root")"
+    main="$(sed 's/[][\.*^$()+?{|]/\\&/g' <<< "$main")"
+    skills_re="($root|$main)/skills/"
+    roots_re="($root|$main)(\$|[^A-Za-z0-9._-])"
     while IFS= read -r f; do
-        out="$(jq -r --argjson p "$prefixes" 'try (.message.content[]? | select(.type == "tool_use") | .name as $n
-            | [.input | .. | strings | select(. as $s | any($p[]; . as $x | $s | contains($x)))] | first // empty
+        out="$(jq -r --arg sk "$skills_re" --arg rr "$roots_re" 'try (.message.content[]? | select(.type == "tool_use") | .name as $n
+            | [.input | .. | strings | select(gsub($sk; "") | test($rr))] | first // empty
             | gsub("\n"; "; ") | .[0:160] | "[FAIL] session read the superpowers repo: " + $n + " " + .) catch empty' "$f" 2> /dev/null)"
         if [[ -n "$out" ]]; then
             while IFS= read -r line; do echo "$line"; done <<< "$out"

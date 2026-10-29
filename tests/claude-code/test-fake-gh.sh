@@ -245,12 +245,16 @@ mkdir -p "$PD/sess1/subagents"
 REPO=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 jq -n -c --arg a "$REPO/skills/x/SKILL.md" --arg b "$REPO/docs/superpowers/plans/x.md" --arg d "$G/proj2/docs/superpowers/specs/y.md" \
     '{message:{content:[{type:"tool_use",name:"Read",input:{file_path:$a}},{type:"tool_use",name:"Read",input:{file_path:$b}},{type:"tool_use",name:"Read",input:{file_path:$d}}]}}' >"$PD/sess1.jsonl"
-jq -n -c --arg c "cat $REPO/tests/claude-code/foo" '{message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
+jq -n -c --arg c "cat $REPO/tests/claude-code/foo" --arg l "ls $REPO" --arg g "git -C $REPO log --oneline" --arg w "$REPO/skills/tracking-work-in-issues/forge-commands.md" \
+    '{message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}},{type:"tool_use",name:"Bash",input:{command:$l}},{type:"tool_use",name:"Bash",input:{command:$g}},{type:"tool_use",name:"Read",input:{file_path:$w}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
 rc "reads found" 1 session_repo_reads "$SD"
 export HOME=$SAVED_HOME
-eq "two FAIL lines" 2 "$(grep -c '^\[FAIL\] session read the superpowers repo: ' <<<"$OUT")"
+eq "four FAIL lines" 4 "$(grep -c '^\[FAIL\] session read the superpowers repo: ' <<<"$OUT")"
 has "plan read" 'Read '"$REPO"'/docs/superpowers/plans/x.md'
 has "bash read" 'Bash cat '"$REPO"'/tests/claude-code/foo'
+has "ls root" 'Bash ls '"$REPO"
+has "git -C root" 'Bash git -C '"$REPO"' log'
+check "skills reads are allowed" test "$(grep -c 'skills/' <<<"$OUT")" = 0
 
 echo "-- 16 canary"
 fresh

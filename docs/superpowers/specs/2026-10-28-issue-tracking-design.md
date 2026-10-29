@@ -145,6 +145,14 @@ is one picker:
 On a public repo, the question says the repo is public and that
 everything posted can be read by anyone (your human partner's call).
 
+**Already answered** (my call, settled while planning). A request that
+asks for a new issue ("track this in an issue") is a yes to "Open a new
+issue": no question. A request that names an issue still gets the
+picker, with that issue first, so your human partner confirms it. If
+they skip brainstorming's questions altogether, there is no offer: the
+work is tracked only if the request asks for it, and the one plain line
+brainstorming states then says so.
+
 ### Opening the issue
 
 **When.** At approval: your human partner's OK on the chat description

@@ -191,7 +191,7 @@ gh_log_arg() {
 gh_log_has_flag() {
     local hits
     hits="$(gh_log_calls "$1" "$2" | jq -r --arg re "$3" --arg val "${4-}" --argjson chk "$([[ $# -ge 4 ]] && echo true || echo false)" \
-        "$_GH_FLAG_JQ"' flagvals($re) | select(length > 0 and ($chk | not or any(.[]; . == $val))) | "hit"')"
+        "$_GH_FLAG_JQ"' flagvals($re) | select(length > 0 and (($chk | not) or any(.[]; . == $val))) | "hit"')"
     [[ -n "$hits" ]]
 }
 

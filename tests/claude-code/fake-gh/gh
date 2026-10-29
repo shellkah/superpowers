@@ -1,0 +1,598 @@
+#!/usr/bin/env python3
+"""Stand-in for the GitHub CLI used by the tracking tests.
+
+Logs every call to $FAKE_GH_LOG, keeps issue and PR state as JSON files under
+$FAKE_GH_STATE, and fails on demand when $FAKE_GH_FAIL matches the first two
+words of the call.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+argv = sys.argv[1:]
+STATE = os.environ.get("FAKE_GH_STATE", "")
+
+FLAGS = {  # long name -> (short, takes_value, repeatable)
+    "repo": ("R", True, False), "hostname": ("h", True, False),
+    "json": (None, True, False), "jq": (None, True, False),
+    "state": ("s", True, False), "search": ("S", True, False),
+    "limit": ("L", True, False), "title": ("t", True, False),
+    "body": ("b", True, False), "body-file": ("F", True, False),
+    "assignee": ("a", True, True), "add-assignee": (None, True, True),
+    "remove-assignee": (None, True, True), "comments": ("c", False, False),
+    "comment": ("c", True, False), "reason": ("r", True, False),
+    "draft": ("d", False, False), "base": ("B", True, False),
+    "head": ("H", True, False), "delete-branch": ("d", False, False),
+}
+
+
+def parse(args, cmd=""):
+    """Return (positionals, flags). Short flags are mapped to long names using
+    the meaning they have in the command at hand (c and d are ambiguous)."""
+    pos, flags = [], {}
+    i = 0
+    shorts = {}
+    for long, (short, _, _) in FLAGS.items():
+        if short:
+            shorts.setdefault(short, []).append(long)
+    while i < len(args):
+        a = args[i]
+        name = None
+        val = None
+        if a.startswith("--") and len(a) > 2:
+            name = a[2:]
+            if "=" in name:
+                name, val = name.split("=", 1)
+        elif a.startswith("-") and len(a) > 1 and a != "-":
+            cands = shorts.get(a[1], [])
+            if a[1] == "c":
+                name = "comment" if cmd in ("issue close", "pr close") else "comments"
+            elif a[1] == "d":
+                name = "delete-branch" if cmd == "pr close" else "draft"
+            elif cands:
+                name = cands[0]
+            else:
+                name = a[1:]
+        if name is None:
+            pos.append(a)
+            i += 1
+            continue
+        takes = FLAGS.get(name, (None, True, False))[1]
+        i += 1
+        if takes and val is None:
+            val = args[i] if i < len(args) else ""
+            i += 1
+        elif not takes:
+            val = True
+        if FLAGS.get(name, (0, 0, False))[2]:
+            flags.setdefault(name, []).append(val)
+        else:
+            flags[name] = val
+    return pos, flags
+
+
+def pos_prefix(args):
+    out = []
+    for a in args:
+        if a.startswith("-"):
+            break
+        out.append(a)
+        if len(out) == 2:
+            break
+    return out
+
+
+def log_call(args):
+    path = os.environ.get("FAKE_GH_LOG")
+    if not path:
+        return
+    try:
+        _, flags = parse(args[2:], " ".join(pos_prefix(args)))
+        body = read_body_for_log(args, flags)
+    except Exception:
+        body = None
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"argv": args, "body": body}, ensure_ascii=False) + "\n")
+
+
+_stdin_cache = {}
+
+
+def read_body_for_log(args, flags):
+    cmd = " ".join(pos_prefix(args))
+    b = read_body(flags)
+    if b is None and cmd in ("issue close", "pr close"):
+        c = flags.get("comment")
+        return c if isinstance(c, str) else None
+    return b
+
+
+def _stdin():
+    if "v" not in _stdin_cache:
+        _stdin_cache["v"] = sys.stdin.read()
+    return _stdin_cache["v"]
+
+
+def read_body(flags):
+    if flags.get("body") is not None:
+        return flags["body"]
+    bf = flags.get("body-file")
+    if bf is None:
+        return None
+    if bf == "-":
+        return _stdin()
+    with open(bf, encoding="utf-8") as f:
+        return f.read()
+
+
+def die(msg, code=1):
+    sys.stderr.write(msg + "\n")
+    sys.exit(code)
+
+
+def now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save(path, obj):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False)
+
+
+def login():
+    try:
+        with open(os.path.join(STATE, "login"), encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def repo():
+    return load(os.path.join(STATE, "repo.json"))
+
+
+def numbers():
+    nums = []
+    for d in ("issues", "pulls"):
+        p = os.path.join(STATE, d)
+        if os.path.isdir(p):
+            nums += [int(n[:-5]) for n in os.listdir(p) if n.endswith(".json") and n[:-5].isdigit()]
+    return nums
+
+
+def next_number():
+    return 1 + max(numbers(), default=0)
+
+
+def emit(obj, fields_all, flags, kind_list=False):
+    """Print --json/--jq output. obj is a dict (or list of dicts)."""
+    fields = [f for f in flags["json"].split(",") if f]
+    for f in fields:
+        if f not in fields_all:
+            die('Unknown JSON field: "%s"' % f)
+    pick = lambda o: {f: o.get(f) for f in fields}
+    out = [pick(o) for o in obj] if kind_list else pick(obj)
+    text = json.dumps(out, ensure_ascii=False, separators=(",", ":"))
+    if flags.get("jq") is not None:
+        r = subprocess.run(["jq", "-r", flags["jq"]], input=text, text=True, capture_output=True)
+        sys.stdout.write(r.stdout)
+        sys.stderr.write(r.stderr)
+        sys.stdout.flush()
+        sys.exit(r.returncode)
+    print(text)
+
+
+ISSUE_FIELDS = "number title body state stateReason author assignees comments url createdAt updatedAt labels".split()
+PR_FIELDS = "number title body state isDraft headRefName baseRefName url mergeCommit mergedAt closed author comments".split()
+REPO_FIELDS = "name nameWithOwner owner visibility isPrivate hasIssuesEnabled defaultBranchRef url isFork".split()
+
+
+def check_repo(flags, positional=None):
+    r = repo()
+    cand = flags.get("repo")
+    if cand is None and positional and re.match(r"https?://", positional):
+        cand = positional
+    if cand is None:
+        return r
+    name = cand
+    m = re.match(r"https?://[^/]+/([^/]+/[^/]+)", cand)
+    if m:
+        name = m.group(1)
+    if name != r["nameWithOwner"]:
+        die("GraphQL: Could not resolve to a Repository with the name '%s'. (repository)" % cand)
+    return r
+
+
+def me():
+    return login()
+
+
+def assignees(vals):
+    return [{"login": me() if v == "@me" else v} for v in vals]
+
+
+def ref_number(token):
+    if token is None:
+        return None
+    m = re.search(r"/(?:issues|pull)/(\d+)", token)
+    if m:
+        return int(m.group(1))
+    if token.isdigit():
+        return int(token)
+    return None
+
+
+def not_found(n):
+    die("GraphQL: Could not resolve to an issue or pull request with the number of %s. (repository.issue)" % n)
+
+
+def load_issue(token):
+    n = ref_number(token)
+    p = os.path.join(STATE, "issues", "%s.json" % n)
+    if n is None or not os.path.exists(p):
+        not_found(token)
+    return n, p, load(p)
+
+
+def load_pr(token, flags):
+    pdir = os.path.join(STATE, "pulls")
+    n = ref_number(token)
+    if n is None and token is not None:
+        cands = []
+        for f in os.listdir(pdir) if os.path.isdir(pdir) else []:
+            o = load(os.path.join(pdir, f))
+            if o.get("headRefName") == token:
+                cands.append(o)
+        if not cands:
+            die('no pull requests found for branch "%s"' % token)
+        n = max(c["number"] for c in cands)
+    p = os.path.join(pdir, "%s.json" % n)
+    if n is None or not os.path.exists(p):
+        not_found(token)
+    return n, p, load(p)
+
+
+def add_comment(obj, body):
+    obj.setdefault("comments", []).append({
+        "author": {"login": me()}, "body": body, "createdAt": now(),
+        "url": "%s#issuecomment-%d" % (obj["url"], 1000 + len(obj.get("comments", [])) + 1),
+    })
+
+
+# ---- commands --------------------------------------------------------------
+
+def cmd_version(pos, flags):
+    print("gh version 2.103.2 (2026-10-23)")
+    print("https://github.com/cli/cli/releases/tag/v2.103.2")
+
+
+def cmd_auth_status(pos, flags):
+    who = login()
+    if who is None:
+        if flags.get("json") is not None:
+            print('{"hosts":{}}')
+            return
+        die("You are not logged into any GitHub hosts. To log in, run: gh auth login")
+    if flags.get("json") is not None:
+        hosts = {"github.com": [{"state": "success", "active": True, "host": "github.com",
+                                 "login": who, "tokenSource": "keyring", "gitProtocol": "ssh"}]}
+        obj = {"hosts": hosts}
+        for f in flags["json"].split(","):
+            if f != "hosts":
+                die('Unknown JSON field: "%s"' % f)
+        text = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+        if flags.get("jq") is not None:
+            r = subprocess.run(["jq", "-r", flags["jq"]], input=text, text=True, capture_output=True)
+            sys.stdout.write(r.stdout)
+            sys.stderr.write(r.stderr)
+            sys.exit(r.returncode)
+        print(text)
+        return
+    print("github.com")
+    print("  ✓ Logged in to github.com account %s (keyring)" % who)
+    print("  - Active account: true")
+    print("  - Git operations protocol: ssh")
+    print("  - Token scopes: 'gist', 'read:org', 'repo'")
+
+
+def cmd_repo_view(pos, flags):
+    r = repo()
+    target = pos[0] if pos else None
+    if target is not None:
+        name = target
+        m = re.match(r"https?://[^/]+/([^/]+/[^/]+)", target)
+        if m:
+            name = m.group(1)
+        if name != r["nameWithOwner"]:
+            die("GraphQL: Could not resolve to a Repository with the name '%s'. (repository)" % target)
+    if flags.get("json") is not None:
+        emit(r, REPO_FIELDS, flags)
+        return
+    print("name:\t%s" % r["nameWithOwner"])
+    print("description:\t")
+
+
+def words(text):
+    text = " ".join(t for t in text.split() if ":" not in t).lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    return [w for w in text.split() if len(w) >= 3]
+
+
+def tokens(text):
+    return set(re.sub(r"[^\w\s]", " ", text.lower()).split())
+
+
+def cmd_issue_list(pos, flags):
+    check_repo(flags)
+    state = (flags.get("state") or "open").lower()
+    limit = int(flags.get("limit") or 30)
+    d = os.path.join(STATE, "issues")
+    items = [load(os.path.join(d, f)) for f in os.listdir(d) if f.endswith(".json")] if os.path.isdir(d) else []
+    if state != "all":
+        items = [i for i in items if i["state"].lower() == state]
+    if flags.get("search"):
+        qw = words(flags["search"])
+        scored = []
+        for i in items:
+            have = tokens(i["title"] + " " + (i.get("body") or ""))
+            score = sum(1 for w in qw if w in have)
+            if score:
+                scored.append((score, i))
+        scored.sort(key=lambda t: (-t[0], -t[1]["number"]))
+        items = [i for _, i in scored]
+    else:
+        items.sort(key=lambda i: -i["number"])
+    items = items[:limit]
+    if flags.get("json") is not None:
+        emit(items, ISSUE_FIELDS, flags, kind_list=True)
+        return
+    for i in items:
+        print("%d\t%s\t%s\t\t%s" % (i["number"], i["state"], i["title"], i["updatedAt"]))
+
+
+def cmd_issue_create(pos, flags):
+    r = check_repo(flags)
+    n = next_number()
+    url = "https://github.com/%s/issues/%d" % (r["nameWithOwner"], n)
+    t = now()
+    body = read_body(flags)
+    obj = {"number": n, "title": flags.get("title") or "", "body": body or "", "state": "OPEN",
+           "stateReason": None, "author": {"login": me()},
+           "assignees": assignees(flags.get("assignee", [])), "comments": [], "url": url,
+           "createdAt": t, "updatedAt": t, "labels": []}
+    os.makedirs(os.path.join(STATE, "issues"), exist_ok=True)
+    save(os.path.join(STATE, "issues", "%d.json" % n), obj)
+    print(url)
+
+
+def cmd_issue_comment(pos, flags):
+    check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_issue(pos[0] if pos else None)
+    add_comment(obj, read_body(flags) or "")
+    obj["updatedAt"] = now()
+    save(p, obj)
+    print(obj["comments"][-1]["url"])
+
+
+def cmd_issue_edit(pos, flags):
+    check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_issue(pos[0] if pos else None)
+    if flags.get("title") is not None:
+        obj["title"] = flags["title"]
+    b = read_body(flags)
+    if b is not None:
+        obj["body"] = b
+    for v in assignees(flags.get("add-assignee", [])):
+        if v not in obj["assignees"]:
+            obj["assignees"].append(v)
+    for v in assignees(flags.get("remove-assignee", [])):
+        obj["assignees"] = [a for a in obj["assignees"] if a != v]
+    obj["updatedAt"] = now()
+    save(p, obj)
+    print(obj["url"])
+
+
+def cmd_issue_view(pos, flags):
+    check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_issue(pos[0] if pos else None)
+    if flags.get("json") is not None:
+        emit(obj, ISSUE_FIELDS, flags)
+        return
+    print("title:\t%s" % obj["title"])
+    print("state:\t%s" % obj["state"])
+    print("author:\t%s" % obj["author"]["login"])
+    print("assignees:\t%s" % ", ".join(a["login"] for a in obj["assignees"]))
+    print("number:\t%d" % obj["number"])
+    print("--")
+    print(obj["body"])
+    if flags.get("comments"):
+        for c in obj["comments"]:
+            print("author:\t%s" % c["author"]["login"])
+            print("--")
+            print(c["body"])
+            print("--")
+
+
+def cmd_issue_close(pos, flags):
+    r = check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_issue(pos[0] if pos else None)
+    if obj["state"] == "CLOSED":
+        sys.stderr.write("! Issue %s#%d (%s) is already closed\n" % (r["nameWithOwner"], n, obj["title"]))
+        return
+    if flags.get("comment") is not None:
+        add_comment(obj, flags["comment"])
+    obj["state"] = "CLOSED"
+    obj["stateReason"] = "NOT_PLANNED" if (flags.get("reason") or "completed").lower() == "not planned" else "COMPLETED"
+    obj["updatedAt"] = now()
+    save(p, obj)
+    sys.stderr.write("✓ Closed issue %s#%d (%s)\n" % (r["nameWithOwner"], n, obj["title"]))
+
+
+def git(*a):
+    return subprocess.run(["git", *a], capture_output=True, text=True)
+
+
+def cmd_pr_create(pos, flags):
+    r = check_repo(flags)
+    base = flags.get("base") or r["defaultBranchRef"]["name"]
+    head = flags.get("head")
+    inside = git("rev-parse", "--is-inside-work-tree").returncode == 0
+    has_origin = inside and git("remote", "get-url", "origin").returncode == 0
+    if head is None and inside:
+        head = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    if has_origin:
+        rh = git("ls-remote", "origin", "refs/heads/%s" % head).stdout.split()
+        if not rh:
+            die("pull request create failed: GraphQL: Head sha can't be blank, Base sha can't be blank, "
+                "No commits between %s and %s, Head ref must be a branch (createPullRequest)" % (base, head), 1)
+        rb = git("ls-remote", "origin", "refs/heads/%s" % base).stdout.split()
+        if rb:
+            c = git("rev-list", "--count", "%s..%s" % (rb[0], rh[0]))
+            if c.returncode == 0 and c.stdout.strip() == "0":
+                die("pull request create failed: GraphQL: No commits between %s and %s (createPullRequest)" % (base, head), 1)
+    d = os.path.join(STATE, "pulls")
+    os.makedirs(d, exist_ok=True)
+    for f in os.listdir(d):
+        o = load(os.path.join(d, f))
+        if o["state"] == "OPEN" and o["headRefName"] == head and o["baseRefName"] == base:
+            die('a pull request for branch "%s" into branch "%s" already exists:\n%s' % (head, base, o["url"]))
+    n = next_number()
+    url = "https://github.com/%s/pull/%d" % (r["nameWithOwner"], n)
+    obj = {"number": n, "title": flags.get("title") or "", "body": read_body(flags) or "", "state": "OPEN",
+           "isDraft": bool(flags.get("draft")), "headRefName": head, "baseRefName": base, "url": url,
+           "mergeCommit": None, "mergedAt": None, "closed": False, "author": {"login": me()}, "comments": []}
+    save(os.path.join(d, "%d.json" % n), obj)
+    print(url)
+
+
+def pr_status(o):
+    if o["state"] == "OPEN" and o["isDraft"]:
+        return "DRAFT"
+    return o["state"]
+
+
+def cmd_pr_list(pos, flags):
+    check_repo(flags)
+    state = (flags.get("state") or "open").lower()
+    limit = int(flags.get("limit") or 30)
+    d = os.path.join(STATE, "pulls")
+    items = [load(os.path.join(d, f)) for f in os.listdir(d) if f.endswith(".json")] if os.path.isdir(d) else []
+    if state != "all":
+        items = [i for i in items if i["state"].lower() == state]
+    if flags.get("head"):
+        items = [i for i in items if i["headRefName"] == flags["head"]]
+    if flags.get("base"):
+        items = [i for i in items if i["baseRefName"] == flags["base"]]
+    items.sort(key=lambda i: -i["number"])
+    items = items[:limit]
+    if flags.get("json") is not None:
+        emit(items, PR_FIELDS, flags, kind_list=True)
+        return
+    for i in items:
+        print("%d\t%s\t%s\t%s" % (i["number"], i["title"], i["headRefName"], pr_status(i)))
+
+
+def pr_target(pos, flags):
+    if not pos:
+        if flags.get("repo") is not None:
+            die("argument required when using the --repo flag")
+        return None
+    return pos[0]
+
+
+def cmd_pr_view(pos, flags):
+    check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_pr(pr_target(pos, flags), flags)
+    if flags.get("json") is not None:
+        emit(obj, PR_FIELDS, flags)
+        return
+    print("title:\t%s" % obj["title"])
+    print("state:\t%s" % pr_status(obj))
+    print("author:\t%s" % obj["author"]["login"])
+    print("number:\t%d" % obj["number"])
+    print("--")
+    print(obj["body"])
+
+
+def cmd_pr_edit(pos, flags):
+    check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_pr(pr_target(pos, flags), flags)
+    if flags.get("title") is not None:
+        obj["title"] = flags["title"]
+    b = read_body(flags)
+    if b is not None:
+        obj["body"] = b
+    if flags.get("base") is not None:
+        obj["baseRefName"] = flags["base"]
+    save(p, obj)
+    print(obj["url"])
+
+
+def cmd_pr_ready(pos, flags):
+    r = check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_pr(pr_target(pos, flags), flags)
+    obj["isDraft"] = False
+    save(p, obj)
+    sys.stderr.write('✓ Pull request %s#%d (%s) is marked as "ready for review"\n' % (r["nameWithOwner"], n, obj["title"]))
+
+
+def cmd_pr_close(pos, flags):
+    r = check_repo(flags, pos[0] if pos else None)
+    n, p, obj = load_pr(pr_target(pos, flags), flags)
+    if flags.get("comment") is not None:
+        add_comment(obj, flags["comment"])
+    obj["state"] = "CLOSED"
+    obj["closed"] = True
+    save(p, obj)
+    sys.stderr.write("✓ Closed pull request %s#%d (%s)\n" % (r["nameWithOwner"], n, obj["title"]))
+
+
+COMMANDS = {
+    ("auth", "status"): cmd_auth_status,
+    ("repo", "view"): cmd_repo_view,
+    ("issue", "list"): cmd_issue_list,
+    ("issue", "create"): cmd_issue_create,
+    ("issue", "comment"): cmd_issue_comment,
+    ("issue", "edit"): cmd_issue_edit,
+    ("issue", "view"): cmd_issue_view,
+    ("issue", "close"): cmd_issue_close,
+    ("pr", "create"): cmd_pr_create,
+    ("pr", "list"): cmd_pr_list,
+    ("pr", "view"): cmd_pr_view,
+    ("pr", "edit"): cmd_pr_edit,
+    ("pr", "ready"): cmd_pr_ready,
+    ("pr", "close"): cmd_pr_close,
+}
+
+
+def main():
+    log_call(argv)
+    fail = os.environ.get("FAKE_GH_FAIL")
+    if fail and re.fullmatch(fail, " ".join(argv[:2])):
+        die("HTTP 401: Bad credentials (https://api.github.com/graphql)")
+    if argv[:1] == ["--version"]:
+        return cmd_version([], {})
+    prefix = tuple(argv[:2])
+    if prefix == ("auth", "status") and prefix in COMMANDS:
+        pos, flags = parse(argv[2:], "auth status")
+        return cmd_auth_status(pos, flags)
+    if login() is None:
+        die("To get started with GitHub CLI, please run:  gh auth login", 4)
+    if prefix not in COMMANDS:
+        word = argv[1] if len(argv) > 1 else (argv[0] if argv else "")
+        group = argv[0] if len(argv) > 1 else ""
+        die('unknown command "%s" for "gh %s"' % (word, group) if group else 'unknown command "%s" for "gh"' % word)
+    pos, flags = parse(argv[2:], " ".join(prefix))
+    return COMMANDS[prefix](pos, flags)
+
+
+if __name__ == "__main__":
+    main()

@@ -233,6 +233,38 @@ latest_transcript() {
     ls -t "$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"/*.jsonl 2>/dev/null | head -1 || true
 }
 
+# Put the stand-in gh (tests/claude-code/fake-gh) first on PATH and point it
+# at fresh state and log files under DIR.
+# Usage: setup_fake_gh <dir>
+setup_fake_gh() {
+    local dir fake_dir
+    mkdir -p "$1/state/issues" "$1/state/pulls"
+    dir="$(cd "$1" && pwd)"
+    fake_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/fake-gh" && pwd)"
+    export FAKE_GH_STATE="$dir/state"
+    export FAKE_GH_LOG="$dir/gh.log"
+    export PATH="$fake_dir:$PATH"
+}
+
+# Print every Writing Rules violation in an issue or draft PR text, one per
+# line as "<label>: <match> (line <n>)". Prints nothing when the text is clean.
+# <!-- ... --> markers are ignored. Always exits 0.
+# Usage: issue_text_violations <file>
+issue_text_violations() {
+    local stripped
+    stripped="$(mktemp)"
+    sed -E 's/<!--.*-->//g' "$1" > "$stripped"
+    {
+        grep -n -o -i -E '\btask [0-9]+' "$stripped" | sed -E 's/^([0-9]+):(.*)$/task number: \2 (line \1)/'
+        grep -n -o -i -E '\bpart [0-9]+ of [0-9]+' "$stripped" | sed -E 's/^([0-9]+):(.*)$/part count: \2 (line \1)/'
+        grep -n -o -i -E '\b(ledger|rulings?|reviewers?|subagents?|executors?|briefs?)\b' "$stripped" | sed -E 's/^([0-9]+):(.*)$/workflow word: \2 (line \1)/'
+        grep -n -o -E '\b(RED|GREEN)\b' "$stripped" | sed -E 's/^([0-9]+):(.*)$/workflow word: \2 (line \1)/'
+        grep -n -o -E '(^|[^[:alnum:]_./@-])@[[:alnum:]][[:alnum:]-]*' "$stripped" | sed -E 's/^([0-9]+):[^@]*(@.*)$/mention: \2 (line \1)/'
+    } || true
+    rm -f "$stripped"
+    return 0
+}
+
 # Export functions for use in tests
 export -f run_claude
 export -f run_claude_fork
@@ -245,3 +277,5 @@ export -f cleanup_test_project
 export -f create_test_plan
 export -f new_repo
 export -f latest_transcript
+export -f setup_fake_gh
+export -f issue_text_violations

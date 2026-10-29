@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/tracking-fixtures.sh"
 T="${CLAUDE_PROMPT_TIMEOUT:-240}"
 FAILURES=0
 TEST_ROOT="$(mktemp -d)"
+SESSION_ROOT="$TEST_ROOT"
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
 # Collapse every whitespace run to one space and trim the ends.
@@ -22,17 +23,17 @@ echo "=== Test: tracking in a public repo ==="
 echo ""
 
 root="$TEST_ROOT/pub"
-work="$(tracking_repo "$root")"
+if ! work="$(tracking_repo "$root")" || [[ -z "$work" ]]; then echo "FAIL: fixture: tracking_repo failed"; exit 1; fi
 tracking_env "$root"
-fake_repo_facts PUBLIC true main
+fake_repo_facts PUBLIC true main || { echo "FAIL: fixture: fake_repo_facts failed"; exit 1; }
 OUT=""
 OUT2=""
 
 echo "Turn 1: the text is shown first, nothing is posted..."
 run_moment "$work" "$T" 'We have agreed on a small change and I approve it: make hello.sh accept a --name option. Track this in a new issue. Do not build anything yet: stop once the issue step is done.'
 check "no issue created yet" test "$(gh_log_count issue create)" = 0
-check "the output mentions public" has_i "$OUT" 'public'
-check "the output shows a Status line" has_i "$OUT" 'Status:'
+check "the output mentions public" hasf "$OUT" 'public'
+check "the output shows a Status line" hasf "$OUT" 'Status:'
 check_isolation "$work"
 echo ""
 

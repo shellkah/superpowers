@@ -8,7 +8,8 @@ _FIXTURES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Usage: tracking_repo <root> [ssh|https|local]   # prints <root>/work
 tracking_repo() {
     local root form work remote
-    mkdir -p "$1"
+    [[ -n "${1:-}" ]] || { echo "tracking_repo: no root" >&2; return 1; }
+    mkdir -p "$1" || return 1
     root="$(cd "$1" && pwd)"
     form="${2:-ssh}"
     work="$root/work"
@@ -263,6 +264,7 @@ OPENED_MARKER='<!-- superpowers:opened -->'
 # Write the spec for the --version flag.
 # Usage: _write_spec <work> [<issue-line>]
 _write_spec() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "_write_spec: not a directory: ${1:-}" >&2; return 1; }
     local f="$1/$SPEC_PATH"
     mkdir -p "$(dirname "$f")"
     {
@@ -300,6 +302,7 @@ _plan_tasks() {
 
 # Usage: _commit_and_push_main <work> <message>
 _commit_and_push_main() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "_commit_and_push_main: not a directory: ${1:-}" >&2; return 1; }
     git -C "$1" add -A docs
     git -C "$1" commit -q -m "$2"
     git -C "$1" push -q origin main > /dev/null 2>&1
@@ -307,6 +310,7 @@ _commit_and_push_main() {
 
 # Usage: version_flag_docs <work> [<issue-line>]
 version_flag_docs() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "version_flag_docs: not a directory: ${1:-}" >&2; return 1; }
     local work="$1" issue="${2:-}" f
     _write_spec "$work" "$issue"
     f="$work/$PLAN_PATH"
@@ -329,6 +333,7 @@ version_flag_docs() {
 
 # Usage: split_plan_docs <work> <issue-line>
 split_plan_docs() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "split_plan_docs: not a directory: ${1:-}" >&2; return 1; }
     local work="$1" issue="$2"
     _write_spec "$work" "$issue"
     mkdir -p "$work/docs/superpowers/plans"
@@ -387,6 +392,7 @@ existing_issue_4() {
 # Cut version-flag from <base>, commit Task 1, print the directory to run in.
 # Usage: work_branch <work> <base> worktree|checkout
 work_branch() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "work_branch: not a directory: ${1:-}" >&2; return 1; }
     local work="$1" base="$2" mode="$3" dir
     case "$mode" in
         worktree)
@@ -410,6 +416,7 @@ work_branch() {
 
 # Usage: task2_commit <dir>
 task2_commit() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "task2_commit: not a directory: ${1:-}" >&2; return 1; }
     local dir="$1"
     cat > "$dir/hello.sh" <<'SH'
 #!/bin/sh
@@ -430,7 +437,7 @@ SH
 }
 
 # Usage: push_work <dir>
-push_work() { git -C "$1" push -q -u origin version-flag > /dev/null 2>&1; }
+push_work() { [[ -n "${1:-}" && -d "$1" ]] || return 1; git -C "$1" push -q -u origin version-flag > /dev/null 2>&1; }
 
 # Usage: draft_pr_13 <base> [<issue>]
 draft_pr_13() {
@@ -448,13 +455,14 @@ draft_pr_13() {
 
 # Usage: dev_base <work>
 dev_base() {
+    [[ -n "${1:-}" && -d "$1" ]] || { echo "dev_base: not a directory: ${1:-}" >&2; return 1; }
     git -C "$1" branch dev main
     git -C "$1" push -q origin dev > /dev/null 2>&1
 }
 
 # Print the sha of refs/heads/<branch> in <root>/remote.git, or nothing.
 # Usage: bare_ref <root> <branch>
-bare_ref() { git --git-dir="$1/remote.git" rev-parse -q --verify "refs/heads/$2" 2> /dev/null || true; }
+bare_ref() { [[ -n "${1:-}" && -d "$1/remote.git" ]] || return 0; git --git-dir="$1/remote.git" rev-parse -q --verify "refs/heads/$2" 2> /dev/null || true; }
 
 # Usage: first_line_after_title <file>
 first_line_after_title() {
@@ -491,7 +499,25 @@ moment() {
     printf '%s' "If this work tracks an issue, $1 as superpowers:tracking-work-in-issues says ($2)"
 }
 
+# Run a fixture step; a failure counts as a failed check and returns 1.
+# Usage: fx <command> [args...]
+fx() {
+    "$@" || { check "fixture: $1 failed" false; return 1; }
+}
+
+# Run a fixture that prints a value; set <var> to it. Failure or an empty value
+# counts as a failed check and returns 1.
+# Usage: fxv <var> <command> [args...]
+fxv() {
+    local var="$1" val
+    shift
+    val="$("$@")" && [[ -n "$val" ]] || { check "fixture: $1 failed" false; return 1; }
+    printf -v "$var" '%s' "$val"
+}
+
 # ---- running a session ----
+
+# Sessions start only inside SESSION_ROOT (the scenario's or file's temp root).
 
 # Run a prompt in <dir>; the output goes to the global OUT.
 # Usage: run_moment <dir> <timeout> <prompt>
@@ -502,8 +528,21 @@ run_moment() { _run_session OUT "$1" "$2" "$3"; }
 continue_moment() { _run_session OUT2 "$1" "$2" "$3" --continue; }
 
 _run_session() {
-    local var="$1" dir="$2" t="$3" prompt="$4" rc=0 out
+    local var="$1" dir="$2" t="$3" prompt="$4" rc=0 out real top
     shift 4
+    printf -v "$var" '%s' ""
+    if [[ -z "$dir" || ! -d "$dir" || -z "${SESSION_ROOT:-}" || ! -d "${SESSION_ROOT:-}" ]]; then
+        echo "  [FAIL] session not started: '$dir' is not a directory under the temp root '${SESSION_ROOT:-}'"
+        FAILURES=$((FAILURES + 1))
+        return 1
+    fi
+    real="$(cd "$dir" && pwd -P)"
+    top="$(cd "$SESSION_ROOT" && pwd -P)"
+    if [[ "$real" != "$top" && "$real" != "$top"/* ]]; then
+        echo "  [FAIL] session not started: '$real' is outside the temp root '$top'"
+        FAILURES=$((FAILURES + 1))
+        return 1
+    fi
     out="$(cd "$dir" && run_claude_fork "$prompt" "$t" --permission-mode bypassPermissions --strict-mcp-config "$@")" || rc=$?
     printf -v "$var" '%s' "$out"
     if [[ $rc -eq 124 ]]; then
@@ -513,7 +552,20 @@ _run_session() {
         return 1
     fi
     if [[ $rc -ne 0 ]]; then
-        echo "  [note] claude exited with status $rc"
+        echo "  [FAIL] session exited with status $rc; output:"
+        sed 's/^/    /' <<< "$out"
+        FAILURES=$((FAILURES + 1))
+        return 1
+    fi
+    if [[ -z "$out" ]]; then
+        echo "  [FAIL] session produced no output"
+        FAILURES=$((FAILURES + 1))
+        return 1
+    fi
+    if [[ -z "$(latest_transcript "$dir")" ]]; then
+        echo "  [FAIL] session left no transcript for $dir"
+        FAILURES=$((FAILURES + 1))
+        return 1
     fi
     return 0
 }
@@ -567,6 +619,12 @@ named_last_lines() {
 named_body_ending() {
     named_calls "$1" "$2" "$3" | jq -rs --arg m "$4" \
         'map(select((.body // "") | split("\n") | map(select(test("\\S"))) | (last // "") == $m)) | (last // {}) | (.body // "")'
+}
+
+# First value of a flag among calls naming <N> (last such call by default).
+# Usage: named_arg <word1> <word2> <N> <flag-regex>
+named_arg() {
+    named_calls "$1" "$2" "$3" | _nth | jq -r --arg re "$4" "$_GH_FLAG_JQ"' flagvals($re)[0] // empty'
 }
 
 # Usage: named_has_flag <word1> <word2> <N> <flag-regex> [<value>]

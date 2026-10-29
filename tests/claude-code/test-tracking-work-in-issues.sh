@@ -10,7 +10,9 @@ source "$SCRIPT_DIR/tracking-fixtures.sh"
 
 T="${CLAUDE_PROMPT_TIMEOUT:-200}"
 FAILURES=0
+root="" work="" wt="" # set by the fixtures (fxv)
 TEST_ROOT="$(mktemp -d)"
+SESSION_ROOT="$TEST_ROOT"
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
 SKILL="$REPO_ROOT/skills/tracking-work-in-issues/SKILL.md"
@@ -59,49 +61,46 @@ check "forge-commands.md exists" test -f "$REPO_ROOT/skills/tracking-work-in-iss
 check "plugin.json lists the skill" jq -e '.capabilities.skills | any(. == {"id":"tracking-work-in-issues","path":"skills/tracking-work-in-issues/SKILL.md"})' "$REPO_ROOT/.muse-plugin/plugin.json"
 echo ""
 
-echo "Test 2: **Issue:** none means no forge call..."
-begin_test
-root="$TEST_ROOT/t2"
-work="$(tracking_repo "$root")"
-tracking_env "$root"
-version_flag_docs "$work" '**Issue:** none'
-wt="$(work_branch "$work" main worktree)"
-run_moment "$wt" "$T" "$C_EXEC Task 1 has just completed: its tests passed and it is committed. $(moment 'do what comes after Task 1' 'The Draft PR'), then stop before Task 2."
-check "no gh call" test "$(gh_log_total)" = 0
-check "version-flag was not pushed" test -z "$(bare_ref "$root" version-flag)"
-check_isolation "$wt"
-end_test
-echo ""
+test_2() {
+    begin_test
+    root="$TEST_ROOT/t2"
+    fxv work tracking_repo "$root" || return
+    fx tracking_env "$root" || return
+    fx version_flag_docs "$work" '**Issue:** none' || return
+    fxv wt work_branch "$work" main worktree || return
+    run_moment "$wt" "$T" "$C_EXEC Task 1 has just completed: its tests passed and it is committed. $(moment 'do what comes after Task 1' 'The Draft PR'), then stop before Task 2."
+    check "no gh call" test "$(gh_log_total)" = 0
+    check "version-flag was not pushed" test -z "$(bare_ref "$root" version-flag)"
+    check_isolation "$wt"
+}
 
-echo "Test 3: A non-forge remote means no forge call..."
-begin_test
-root="$TEST_ROOT/t3"
-work="$(tracking_repo "$root" local)"
-tracking_env "$root"
-run_moment "$work" "$T" 'We have agreed on a small change and I approve it: make hello.sh accept a --name option. Track this in an issue. Do not build anything yet: stop once the issue is taken care of.'
-check "no gh call" test "$(gh_log_total)" = 0
-check "the output mentions github or gitlab" has_i "$OUT" 'github\|gitlab'
-check_isolation "$work"
-end_test
-echo ""
+test_3() {
+    begin_test
+    root="$TEST_ROOT/t3"
+    fxv work tracking_repo "$root" local || return
+    fx tracking_env "$root" || return
+    run_moment "$work" "$T" 'We have agreed on a small change and I approve it: make hello.sh accept a --name option. Track this in an issue. Do not build anything yet: stop once the issue is taken care of.'
+    check "no gh call" test "$(gh_log_total)" = 0
+    check "the output mentions github or gitlab" has_i "$OUT" 'github\|gitlab'
+    check_isolation "$work"
+}
 
-echo "Test 4: No offer for a quick task..."
-begin_test
-root="$TEST_ROOT/t4"
-work="$(tracking_repo "$root")"
-tracking_env "$root"
-run_moment "$work" "$T" 'Fix the typo "teh" in README.md; it should be "the".'
-check "no gh call" test "$(gh_log_total)" = 0
-check "no offer to open an issue" not hasf "$OUT" 'Open a new issue'
-check_isolation "$work"
-end_test
-echo ""
+test_4() {
+    begin_test
+    root="$TEST_ROOT/t4"
+    fxv work tracking_repo "$root" || return
+    fx tracking_env "$root" || return
+    run_moment "$work" "$T" 'Fix the typo "teh" in README.md; it should be "the".'
+    check "no gh call" test "$(gh_log_total)" = 0
+    check "no offer to open an issue" not hasf "$OUT" 'Open a new issue'
+    check_isolation "$work"
+}
 
-echo "Test 5: Autopilot rules (comprehension)..."
-begin_test
-unset FAKE_GH_LOG
-mkdir -p "$TEST_ROOT/t5"
-OUT="$(cd "$TEST_ROOT/t5" && run_claude_fork "Read the superpowers:tracking-work-in-issues skill. Under autopilot, answer using exactly this structure:
+test_5() {
+    begin_test
+    unset FAKE_GH_LOG
+    mkdir -p "$TEST_ROOT/t5" || return
+    run_moment "$TEST_ROOT/t5" "$T" "Read the superpowers:tracking-work-in-issues skill. Under autopilot, answer using exactly this structure:
 Who makes forge calls: <who>
 Executors call gh: <yes or no>
 Issue opens when: <when>
@@ -109,17 +108,28 @@ Draft PR for a one-part plan: <yes or no>
 Draft PR opened after: <when>
 Public repo: show the text before posting: <yes or no>
 Several PRs, an earlier build's PR says: <text>
-Where the skill does not say, answer 'not stated' instead of inferring." "$T")"
-check "Who makes forge calls: the main session" has_i "$OUT" 'Who makes forge calls:.*main session'
-check "Executors call gh: no" has_ei "$OUT" 'Executors call gh:[^a-z]*no\b'
-check "Issue opens when: spec ... commit" has_i "$OUT" 'Issue opens when:.*spec.*commit'
-check "Draft PR for a one-part plan: no" has_ei "$OUT" 'Draft PR for a one-part plan:[^a-z]*no\b'
-check "Draft PR opened after: part 1" has_i "$OUT" 'Draft PR opened after:.*part 1'
-check "Public repo: show the text before posting: no" has_ei "$OUT" 'Public repo: show the text before posting:[^a-z]*no\b'
-check "an earlier build's PR says: Part of #" has_i "$OUT" "earlier build's PR says:.*Part of #"
-check_isolation "$TEST_ROOT/t5"
-end_test
-echo ""
+Where the skill does not say, answer 'not stated' instead of inferring."
+    check "Who makes forge calls: the main session" has_i "$OUT" 'Who makes forge calls:.*main session'
+    check "Executors call gh: no" has_ei "$OUT" 'Executors call gh:[^a-z]*no\b'
+    check "Issue opens when: spec ... commit" has_i "$OUT" 'Issue opens when:.*spec.*commit'
+    check "Draft PR for a one-part plan: no" has_ei "$OUT" 'Draft PR for a one-part plan:[^a-z]*no\b'
+    check "Draft PR opened after: part 1" has_i "$OUT" 'Draft PR opened after:.*part 1'
+    check "Public repo: show the text before posting: no" has_ei "$OUT" 'Public repo: show the text before posting:[^a-z]*no\b'
+    check "an earlier build's PR says: Part of #" has_i "$OUT" "earlier build's PR says:.*Part of #"
+    check_isolation "$TEST_ROOT/t5"
+}
+
+for n in 2 3 4 5; do
+    case $n in
+        2) echo "Test 2: **Issue:** none means no forge call..." ;;
+        3) echo "Test 3: A non-forge remote means no forge call..." ;;
+        4) echo "Test 4: No offer for a quick task..." ;;
+        5) echo "Test 5: Autopilot rules (comprehension)..." ;;
+    esac
+    "test_$n"
+    end_test
+    echo ""
+done
 
 if [[ $FAILURES -eq 0 ]]; then
     echo PASS

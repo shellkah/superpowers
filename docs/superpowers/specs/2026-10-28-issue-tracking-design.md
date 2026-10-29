@@ -361,3 +361,23 @@ call). The reference file and the final report say so.
   partner at the end. Deleting it needs the `delete_repo` scope, which
   the current login lacks; your human partner runs
   `gh auth refresh -s delete_repo` if they want it gone.
+
+## Run notes
+
+Settled with your human partner on 2026-10-29, when autopilot took over
+the run after part 1 was written.
+
+- **Services:** none; the work needs none.
+- **Checkpoints:** no. The run goes straight through to the PR.
+- **PRs:** one, from `issue-tracking` against
+  `brainstorming-deeper-not-bigger` on `shellkah/superpowers` (a fork:
+  every `gh pr` call passes `--repo shellkah/superpowers`).
+- **Pre-flight, passed:** `gh --version`, `gh auth status` (shellkah,
+  scopes `gist`, `read:org`, `repo`), `glab --version`, `claude --version`,
+  `jq --version`, `python3 --version`,
+  `tests/claude-code/test-executing-plans-scripts.sh`, and one headless
+  `run_claude_fork` session with this branch's plugin.
+- **Not yet consented:** creating `shellkah/superpowers-issues-scratch`,
+  and the four acceptance sessions against it (issues, comments, pushes,
+  draft PRs, `gh pr merge`). Part 1 needs neither. Until these notes say
+  otherwise, stop before any step that runs them.

@@ -246,7 +246,8 @@ REPO=$(cd "$SCRIPT_DIR/../.." && pwd -P)
 jq -n -c --arg a "$REPO/skills/x/SKILL.md" --arg b "$REPO/docs/superpowers/plans/x.md" --arg d "$G/proj2/docs/superpowers/specs/y.md" \
     '{message:{content:[{type:"tool_use",name:"Read",input:{file_path:$a}},{type:"tool_use",name:"Read",input:{file_path:$b}},{type:"tool_use",name:"Read",input:{file_path:$d}}]}}' >"$PD/sess1.jsonl"
 jq -n -c --arg c "cat $REPO/tests/claude-code/foo" --arg l "ls $REPO" --arg g "git -C $REPO log --oneline" --arg w "$REPO/skills/tracking-work-in-issues/forge-commands.md" \
-    '{message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}},{type:"tool_use",name:"Bash",input:{command:$l}},{type:"tool_use",name:"Bash",input:{command:$g}},{type:"tool_use",name:"Read",input:{file_path:$w}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
+    --arg s "S=$REPO/skills; \$S/subagent-driven-development/scripts/sdd-workspace x" \
+    '{message:{content:[{type:"tool_use",name:"Bash",input:{command:$c}},{type:"tool_use",name:"Bash",input:{command:$l}},{type:"tool_use",name:"Bash",input:{command:$g}},{type:"tool_use",name:"Read",input:{file_path:$w}},{type:"tool_use",name:"Bash",input:{command:$s}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
 rc "reads found" 1 session_repo_reads "$SD"
 export HOME=$SAVED_HOME
 eq "four FAIL lines" 4 "$(grep -c '^\[FAIL\] session read the superpowers repo: ' <<<"$OUT")"
@@ -280,6 +281,18 @@ check "named_has_flag value" named_has_flag issue close 7 '--reason|-r' 'not pla
 check "named_has_flag wrong value" not named_has_flag issue close 7 '--reason|-r' completed
 check "named_has_flag no value arg" named_has_flag pr close 14 '--comment|-c'
 eq "named_calls pr" 1 "$(named_calls pr close 14 | wc -l | tr -d ' ')"
+
+echo "-- 15e force_pushes"
+FP_IN='git push --force origin main
+git push -f origin topic
+git push origin +main
+git push --force-with-lease origin topic
+cd /x && git push -u origin topic -f; echo done
+git push origin topic; rm -f "$f"
+git push origin --delete topic; f=$(mktemp); rm -f "$f"
+git push -u origin topic 2>&1 | tail -3; rm -f a b'
+eq "forced pushes found" 5 "$(force_pushes <<<"$FP_IN" | wc -l | tr -d ' ')"
+eq "a later rm -f is not a forced push" "" "$(force_pushes <<<"$FP_IN" | grep -F 'rm -f')"
 
 echo "-- 16 canary"
 fresh

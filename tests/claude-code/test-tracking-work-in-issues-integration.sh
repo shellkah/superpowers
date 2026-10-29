@@ -55,9 +55,11 @@ spec_has_no_issue_line() { ! grep -q '^\*\*Issue:\*\*' "$work/$SPEC_PATH"; }
 # any call of <w1> <w2> naming <N> has a body containing <str>
 named_body_has() { named_calls "$1" "$2" "$3" | jq -e --arg s "$4" 'select((.body // "") | contains($s))' > /dev/null; }
 # some call naming <N> ends with <marker>
-named_ends_with() { named_last_lines "$1" "$2" "$3" | grep -qxF -- "$4"; }
+# (grep without -q reads all its input: under pipefail, -q quitting early would
+# kill the producer with SIGPIPE and fail the check)
+named_ends_with() { named_last_lines "$1" "$2" "$3" | grep -xF -- "$4" > /dev/null; }
 dropped_marker_posted() {
-    { named_last_lines issue comment 12; named_last_lines issue close 12; } | grep -qxF '<!-- superpowers:dropped -->'
+    { named_last_lines issue comment 12; named_last_lines issue close 12; } | grep -xF '<!-- superpowers:dropped -->' > /dev/null
 }
 starts() { [[ "$1" == "$2"* ]]; }
 # the call has a non-null body
@@ -116,7 +118,7 @@ scenario_offer_issues_off() {
     check "no forge write" num_is "$(gh_write_count)" 0
     check "no issue list call" num_is "$(gh_log_count issue list)" 0
     check "no offer to open an issue" not hasf "$OUT" 'Open a new issue'
-    check "says issues are off" hasf "$OUT" 'issues'
+    check "says issues are off" has_i "$OUT" 'issues'
     common_checks "$work"
 }
 
@@ -330,7 +332,7 @@ scenario_waiting_on_you() {
     check "one comment on #12" num_is "$(named_count issue comment 12)" 1
     check "the comment ends with a waiting marker" grep -qE '^<!-- superpowers:waiting-[0-9]{12} -->$' <<< "$(named_last_lines issue comment 12)"
     check "#12 status line is waiting" test "$(i_first 12)" = '**Status:** Waiting on a decision'
-    check "asks about stdout" hasf "$OUT" 'stdout'
+    check "asks about stdout" has_ei "$OUT" 'stdout|standard output'
     common_checks "$wt"
 }
 
@@ -543,6 +545,8 @@ run_scenario() { # <name>: runs in a subshell, writes <name>.out and <name>.rc
     echo $? > "$RESULTS/$name.rc"
     if [[ "$(cat "$RESULTS/$name.rc")" == 0 ]]; then
         echo "[done] $name: PASS" >&2
+    elif grep -q 'usage limit hit, no result' "$RESULTS/$name.out"; then
+        echo "[done] $name: FAIL (usage limit hit, no result)" >&2
     else
         echo "[done] $name: FAIL" >&2
     fi

@@ -230,11 +230,11 @@ session_commands() {
     local real proj f
     real="$(cd "$1" && pwd -P)"
     proj="$HOME/.claude/projects/$(echo "$real" | sed 's|[^a-zA-Z0-9]|-|g')"
-    for f in "$proj"/*.jsonl; do
-        [[ -f "$f" ]] || continue
+    [[ -d "$proj" ]] || return 0
+    while IFS= read -r f; do
         jq -r 'try (.message.content[]? | select(.type == "tool_use" and .name == "Bash") | .input.command
                     | gsub("\n"; "; ")) catch empty' "$f" 2> /dev/null
-    done
+    done < <(find "$proj" -name '*.jsonl' | sort)
 }
 
 # Usage: check <description> <command> [args...]

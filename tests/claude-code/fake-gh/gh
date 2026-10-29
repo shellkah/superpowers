@@ -238,7 +238,7 @@ def load_issue(token):
     n = ref_number(token)
     p = os.path.join(STATE, "issues", "%s.json" % n)
     if n is None or not os.path.exists(p):
-        not_found(token)
+        not_found(n if n is not None else token)
     return n, p, load(p)
 
 
@@ -256,7 +256,7 @@ def load_pr(token, flags):
         n = max(c["number"] for c in cands)
     p = os.path.join(pdir, "%s.json" % n)
     if n is None or not os.path.exists(p):
-        not_found(token)
+        not_found(n if n is not None else token)
     return n, p, load(p)
 
 
@@ -276,25 +276,14 @@ def cmd_version(pos, flags):
 
 def cmd_auth_status(pos, flags):
     who = login()
-    if who is None:
-        if flags.get("json") is not None:
-            print('{"hosts":{}}')
-            return
+    if who is None and flags.get("json") is None:
         die("You are not logged into any GitHub hosts. To log in, run: gh auth login")
     if flags.get("json") is not None:
-        hosts = {"github.com": [{"state": "success", "active": True, "host": "github.com",
-                                 "login": who, "tokenSource": "keyring", "gitProtocol": "ssh"}]}
-        obj = {"hosts": hosts}
-        for f in flags["json"].split(","):
-            if f != "hosts":
-                die('Unknown JSON field: "%s"' % f)
-        text = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-        if flags.get("jq") is not None:
-            r = subprocess.run(["jq", "-r", flags["jq"]], input=text, text=True, capture_output=True)
-            sys.stdout.write(r.stdout)
-            sys.stderr.write(r.stderr)
-            sys.exit(r.returncode)
-        print(text)
+        hosts = {}
+        if who is not None:
+            hosts = {"github.com": [{"state": "success", "active": True, "host": "github.com",
+                                     "login": who, "tokenSource": "keyring", "gitProtocol": "ssh"}]}
+        emit({"hosts": hosts}, ["hosts"], flags)
         return
     print("github.com")
     print("  ✓ Logged in to github.com account %s (keyring)" % who)
@@ -587,9 +576,9 @@ def main():
     if login() is None:
         die("To get started with GitHub CLI, please run:  gh auth login", 4)
     if prefix not in COMMANDS:
-        word = argv[1] if len(argv) > 1 else (argv[0] if argv else "")
-        group = argv[0] if len(argv) > 1 else ""
-        die('unknown command "%s" for "gh %s"' % (word, group) if group else 'unknown command "%s" for "gh"' % word)
+        if argv[0] in ("auth", "repo", "issue", "pr") and len(argv) > 1:
+            die('unknown command "%s" for "gh %s"' % (argv[1], argv[0]))
+        die('unknown command "%s" for "gh"' % argv[0])
     pos, flags = parse(argv[2:], " ".join(prefix))
     return COMMANDS[prefix](pos, flags)
 

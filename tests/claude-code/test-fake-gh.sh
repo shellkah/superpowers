@@ -55,6 +55,8 @@ rc "logged out status" 1 gh auth status
 has "login hint" 'gh auth login'
 rc "logged out json" 0 gh auth status --json hosts
 eq "empty hosts" '{"hosts":{}}' "$OUT"
+OUT=$(gh auth status --json hosts --jq '.hosts | length')
+eq "logged out jq" 0 "$OUT"
 rc "logged out list" 4 gh issue list --repo acme/widgets
 
 echo "-- 3 repo view"
@@ -182,6 +184,13 @@ rc "pr merge" 1 gh pr merge 14 --repo acme/widgets
 has "unknown" 'unknown command "merge" for "gh pr"'
 eq "merge logged" 1 "$(gh_log_count pr merge)"
 
+rc "api unknown" 1 gh api repos/acme/widgets
+has "api word" 'unknown command "api" for "gh"'
+rc "missing issue by url" 1 gh issue view https://github.com/acme/widgets/issues/99 --repo acme/widgets
+has "number only" 'with the number of 99. (repository.issue)'
+rc "missing pr by url" 1 gh pr view https://github.com/acme/widgets/pull/98 --repo acme/widgets
+has "pr number only" 'with the number of 98.'
+
 echo "-- 14 assert_calls_name_repo"
 fresh
 gh issue comment 7 --body x >/dev/null 2>&1 || true
@@ -206,6 +215,23 @@ rc "dirty" 0 issue_text_violations "$G/dirty.txt"
 eq "nine lines" 9 "$(wc -l <<<"$OUT" | tr -d ' ')"
 has "task line" 'task number: Task 3 (line 1)'
 has "mention line" 'mention: @alice (line 9)'
+
+echo "-- 15b session_commands"
+fresh
+SAVED_HOME=$HOME
+export HOME="$G/home"
+SD="$G/proj"
+mkdir -p "$SD"
+RP=$(cd "$SD" && pwd -P)
+PD="$HOME/.claude/projects/$(echo "$RP" | sed 's|[^a-zA-Z0-9]|-|g')"
+mkdir -p "$PD/sess1/subagents"
+printf '%s\n' '{"message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"echo top\nline2"}},{"type":"tool_use","name":"Read","input":{"file_path":"x"}}]}}' >"$PD/sess1.jsonl"
+printf '%s\n' '{"message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"git push --force"}}]}}' >"$PD/sess1/subagents/agent-a.jsonl"
+OUT=$(session_commands "$SD")
+export HOME=$SAVED_HOME
+has "top-level command" 'echo top; line2'
+has "subagent command" 'git push --force'
+eq "only bash calls" 2 "$(wc -l <<<"$OUT" | tr -d ' ')"
 
 echo "-- 16 canary"
 fresh

@@ -569,6 +569,9 @@ def main():
         die("HTTP 401: Bad credentials (https://api.github.com/graphql)")
     if argv[:1] == ["--version"]:
         return cmd_version([], {})
+    if not argv:  # bare `gh`: real gh prints its help and exits 0
+        print("Work seamlessly with GitHub from the command line.\n\nUSAGE\n  gh <command> <subcommand> [flags]")
+        return
     prefix = tuple(argv[:2])
     if prefix == ("auth", "status") and prefix in COMMANDS:
         pos, flags = parse(argv[2:], "auth status")

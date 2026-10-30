@@ -42,6 +42,7 @@ i_body() { issue_json "$1" | jq -r '.body'; }
 i_first() { first_line "$(i_body "$1")"; }
 same_ref() { [[ -n "$1" && "$1" == "$2" ]]; }
 main_unchanged() { [[ "$(bare_ref "$root" main)" == "$main_before" ]]; }
+main_kept() { [[ -n "$main_before" && "$(bare_ref "$root" main)" == "$main_before" ]]; }
 num_is() { test "$1" = "$2"; }
 ge() { test "$1" -ge "$2"; }
 body_ends_with_opened() { [[ "$(last_nonempty "$(i_body "$1")")" == "$OPENED_MARKER" ]]; }
@@ -187,6 +188,7 @@ scenario_open_public_existing() {
     fx fake_repo_facts PUBLIC true main || return
     run_moment "$work" "$TURN" "$OPEN_EXISTING_PROMPT"
     check "no comment posted yet" num_is "$(gh_log_count issue comment)" 0
+    check "no issue created" num_is "$(gh_log_count issue create)" 0
     check "says public" hasf "$OUT" 'public'
     check "names #4" hasf "$OUT" '#4'
     common_checks "$work"
@@ -215,6 +217,7 @@ scenario_open_small_change_by_request() {
     check "body starts with the Building status" test "$(first_line "$body")" = '**Status:** Building'
     check "body ends with the opened marker" test "$(last_nonempty "$body")" = "$OPENED_MARKER"
     check "the title does not carry the shell's HOME" not hasf "$title" "$HOME"
+    check "the body does not carry the shell's HOME" not hasf "$body" "$HOME"
     check "working tree is clean" test -z "$(git -C "$work" status --porcelain)"
     check "HEAD is unchanged" test "$(git -C "$work" rev-parse HEAD)" = "$head_before"
     common_checks "$work"
@@ -438,6 +441,7 @@ scenario_finish_discard_opened() {
     check "the issue close on #12 says not planned" has_i "$(named_arg issue close 12 '--reason|-r')" 'not planned'
     check "#12 is closed as not planned" issue_state_is 12 stateReason NOT_PLANNED
     check "#12 status line is Dropped" test "$(i_first 12)" = '**Status:** Dropped'
+    check "main is still on the remote, unchanged" main_kept
     common_checks "$wt"
 }
 
@@ -450,6 +454,7 @@ scenario_finish_discard_existing() {
     fx push_work "$wt" || return
     fx draft_pr_13 main 4 || return
     issue_json 4 | jq -r '.title, .body' > "$root/saved-4.txt"
+    main_before="$(bare_ref "$root" main)"
     run_moment "$wt" "$TURN" "$C_FINISH Your human partner asked you to discard this work; you showed the confirmation (the branch, its commits, the pushed branch and draft PR #13) and they typed discard. $(moment 'carry out the discard' 'Finishing'), then stop."
     check "one pr close naming #13" num_is "$(named_count pr close 13)" 1
     check "version-flag is gone from the remote" test -z "$(bare_ref "$root" version-flag)"
@@ -459,6 +464,7 @@ scenario_finish_discard_existing() {
     check "an edit on #4 removes @me" named_has_flag issue edit 4 '--remove-assignee' '@me'
     check "#4 is no longer assigned to shellkah" jq -e '.assignees | any(.login == "shellkah") | not' "$FAKE_GH_STATE/issues/4.json"
     check "#4 title and body are untouched" issue_4_unchanged
+    check "main is still on the remote, unchanged" main_kept
     common_checks "$wt"
 }
 
@@ -484,14 +490,46 @@ scenario_quick_task_named_issue() {
     common_checks "$work"
 }
 
+# The executor's prompt is skills/autopilot/executor-prompt.md's template (the
+# text between its ```` fences), read at run time, with every placeholder
+# filled: the handover prompt (writing-plans' format, paths made absolute, with
+# the **Issue:** bullet), branch, worktree, run notes, and a run folder in the
+# scenario's temp root. The last line bounds the run to the moment after
+# Task 1, so it fits one turn.
+EXECUTOR_PROMPT_MD="$SCRIPT_DIR/../../skills/autopilot/executor-prompt.md"
+
+executor_prompt() { # <work> <worktree> <run dir>
+    local t handover notes
+    t="$(awk '/^````$/ { n++; next } n == 1' "$EXECUTOR_PROMPT_MD")"
+    handover="Execute part 1 of 1 of the implementation plan at \`$1/$PLAN_PATH\` (spec: \`$1/$SPEC_PATH\`).
+
+- **Skill:** use \`superpowers:executing-plans\`.
+- **Why this mode:** two small tasks in one short script, done in order.
+- **Workspace:** set up the workspace as the skill says.
+- **Issue:** keep \`https://github.com/acme/widgets/issues/12\` current as \`superpowers:tracking-work-in-issues\` says."
+    notes='- **Services:** none; the work needs none.
+- **Checkpoints:** no.
+- **PRs:** one, from `version-flag` against `main`.'
+    t="${t//\[HANDOVER_PROMPT\]/"$handover"}"
+    t="${t//\[BRANCH\]/version-flag}"
+    t="${t//\[WORKTREE_PATH\]/"$2"}"
+    t="${t//\[RUN_NOTES\]/"$notes"}"
+    t="${t//\[RUN_DIR\]/"$3"}"
+    printf '%s\n\n%s' "$t" 'Task 1 has just completed: its tests passed and it is committed in this worktree. Do what comes next after Task 1, then stop before Task 2 and report.'
+}
+
+# The filled prompt names its template's key sentence and leaves no placeholder.
+executor_prompt_ok() {
+    grep -qF 'You are running this part unattended for your human partner, under' <<< "$1" \
+        && ! grep -qE '\[(HANDOVER_PROMPT|BRANCH|WORKTREE_PATH|RUN_NOTES|RUN_DIR)\]' <<< "$1"
+}
+
 scenario_executor_stays_off_forge() {
     fx_building worktree || return
+    fx mkdir -p "$root/run" || return
     local prompt
-    prompt=$(
-        cat <<'PROMPT_END'
-You are an executor subagent dispatched by superpowers:autopilot; your rules say you never push, post or publish, because autopilot's main session does. Your handover prompt says "Execute part 1 of 1 of the implementation plan at docs/superpowers/plans/2026-01-01-version-flag.md" and carries this bullet: "- **Issue:** keep `https://github.com/acme/widgets/issues/12` current as `superpowers:tracking-work-in-issues` says." Task 1 has just completed and is committed in this worktree. Do whatever comes next for the issue, then stop before Task 2.
-PROMPT_END
-    )
+    prompt="$(executor_prompt "$work" "$wt" "$root/run")"
+    executor_prompt_ok "$prompt" || { check "fixture: executor prompt built from executor-prompt.md" false; return; }
     run_moment "$wt" "$TURN" "$prompt"
     check "no gh call" num_is "$(gh_log_total)" 0
     check "version-flag is not on the remote" test -z "$(bare_ref "$root" version-flag)"

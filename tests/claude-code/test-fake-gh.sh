@@ -190,6 +190,10 @@ rc "missing issue by url" 1 gh issue view https://github.com/acme/widgets/issues
 has "number only" 'with the number of 99. (repository.issue)'
 rc "missing pr by url" 1 gh pr view https://github.com/acme/widgets/pull/98 --repo acme/widgets
 has "pr number only" 'with the number of 98.'
+before=$(gh_log_total)
+rc "bare gh prints usage" 0 gh
+has "usage line" 'gh <command> <subcommand> [flags]'
+eq "bare gh logged" $((before + 1)) "$(gh_log_total)"
 
 echo "-- 14 assert_calls_name_repo"
 fresh

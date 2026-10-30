@@ -70,6 +70,12 @@ tracking_env() {
     export GH_TOKEN=invalid-token-for-tests
     export GH_PROMPT_DISABLED=1
     export GIT_TERMINAL_PROMPT=0
+    # Defence in depth: a real gh, if ever reached, finds no stored login, and
+    # git reaches remotes only through each repo's core.sshCommand (the
+    # stand-in transport), since GIT_SSH_COMMAND and GIT_SSH would override it.
+    mkdir -p "$1/gh-config"
+    GH_CONFIG_DIR="$(cd "$1/gh-config" && pwd)" && export GH_CONFIG_DIR
+    unset GIT_SSH_COMMAND GIT_SSH
     # After every `git push` the session makes, Claude Code itself runs
     # `gh pr view --json url` (no --repo) to link a PR to the session. That
     # call is the CLI's, not the model's; essential-traffic mode skips it, so

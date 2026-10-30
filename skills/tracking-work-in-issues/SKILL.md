@@ -14,18 +14,22 @@ someone is on this.
 
 **Only the session running brainstorming, writing-plans, executing-plans,
 the subagent-driven-development controller, finishing-a-development-branch
-or autopilot's main session does any of this.** If you are a subagent (an
-implementer, a reviewer, a part writer, a builder check, a cross-part
-check) or an executor dispatched by autopilot, stop here: the session that
-dispatched you makes every forge call, even when your prompt carries an
-`**Issue:**` line. Make no `gh` or `glab` call, not even a read, and no
-push. Say in your report that you left the issue to that session.
+or autopilot's main session does any of this.** Stop here if you are a
+subagent (an implementer, a reviewer, a part writer, a builder check, a
+cross-part check), or if your prompt says you are running a part
+unattended under superpowers:autopilot (an autopilot executor), even while
+you run executing-plans or the subagent-driven-development controller.
+Autopilot's main session, which dispatches that executor, is not one. The
+session that dispatched you makes every forge call, even when your prompt
+carries an `**Issue:**` line. Make no `gh` or `glab` call, not even a
+read, and no push. Say in your report that you left the issue to that
+session.
 
 **Red flags**
 
 | Thought | Reality |
 |---------|---------|
-| "I'm an executor, but reading the issue is harmless" | No forge call at all, reads included. The main session reads and writes. |
+| "I'm running this part under autopilot, but reading the issue is harmless" | No forge call at all, reads included. The main session reads and writes. |
 | "The quick fix is done, I'll close the issue they mentioned" | Quick tasks never touch issues. Leave it and say so. |
 
 **The decision** is one line, directly under the spec's title, with one
@@ -44,10 +48,10 @@ tracking is on, every handover prompt gets this bullet:
 
 A small change has no document: the session doing it holds the decision.
 The tag says whether you may edit the issue's body: only an issue opened
-for this work. No line, or `none`, means no tracking: no forge call, no
-early push, no draft PR, no question, and the workflow runs exactly as it
-does without this skill. A line already there means the decision is made:
-never offer or open again.
+for this work. Once a spec or plan exists, no line, or `none`, means no
+tracking: no forge call, no early push, no draft PR, no question, and the
+workflow runs exactly as it does without this skill. A line already there
+means the decision is made: never offer or open again.
 
 **Quick, clear tasks** never touch issues. If the request names one, leave
 it alone (no forge call) and say so in your closing line.
@@ -59,10 +63,12 @@ it alone (no forge call) and say so in your closing line.
   (Find PR by branch). Run them as written there.
 - Every `gh` call names the repo from `origin` with `--repo <owner>/<name>`,
   reads included: `gh issue view 12 --repo acme/widgets`, never a bare
-  `gh issue view 12`. In a fork, a bare call reaches the upstream.
+  `gh issue view 12`.
 - Write each body or comment to a temporary file outside the repo
   (`mktemp`) and pass the file, so no stray file lands in the work tree.
-  Titles go in single quotes, without `$` or backticks.
+  Fill it with the Write tool or a quoted heredoc (`<<'EOF'`), so `$` and
+  backticks stay literal. Titles go in single quotes, without `$` or
+  backticks; a title with an apostrophe goes in double quotes instead.
 - The draft PR is found from the branch (Find PR by branch), never
   recorded.
 - Never push the default branch or the base branch without asking; never
@@ -135,7 +141,8 @@ the request asks, and brainstorming's one plain line says so.
 - If the offer was made while the CLI was logged out, Repo facts and
   Search never ran: run them now. Issues off: no issue, and one line says
   so. A public repo: show the text first (below). An open match: ask the
-  picker again before posting anything.
+  picker again before posting anything; under autopilot, don't ask: open
+  the issue as decided and name the match in the summary.
 
 **A new issue** (Create):
 
@@ -185,8 +192,7 @@ the request asks, and brainstorming's one plain line says so.
 
 **When and who:**
 
-- After the first commit on the work branch that its base doesn't have
-  (GitHub refuses a PR with no commits).
+- After the first commit on the work branch that its base doesn't have.
 - executing-plans and the subagent-driven-development controller: after
   Task 1 completes. The session doing a small change: after its first
   commit. A later part of a split plan finds the draft already open and
@@ -195,11 +201,11 @@ the request asks, and brainstorming's one plain line says so.
   then it pushes after each later part. A one-part plan under autopilot
   gets no draft: its PR opens at step 5, already ready.
 
-**Not on the default or base branch:** work committed on either gets no
-early push and no draft PR.
+**Not on the default or base branch** (the default from Repo facts): work
+committed on either gets no early push and no draft PR.
 
-**Find it first** (Find PR by branch, any state): if one exists, never open
-a second one.
+**Find it first** (Find PR by branch): never open a second while one is
+open; a closed or merged PR from an earlier attempt doesn't count.
 
 **The base branch.** Before the draft exists, the base is, in order: the
 branch named in the plan, the handover prompt or the conversation; the
@@ -239,9 +245,8 @@ for someone who uses or reviews the work, then the marker alone on the
 last line: `<!-- superpowers:<id> -->`.
 
 **Before posting,** look the marker up in the body and every comment (View
-with comments). Only markers after the last `dropped` marker count:
-anything before it belongs to an earlier, dropped attempt. If it's there,
-don't post again, but still bring the status line up to date.
+with comments). Only markers after the last `dropped` marker count. If
+it's there, don't post again, but still bring the status line up to date.
 
 **The status line.** On an issue opened for this work, each milestone
 rewrites the body's first line, `**Status:** <text>`, and keeps the rest
@@ -268,7 +273,8 @@ gets comments only.
 
 ## Finishing
 
-When this work tracks an issue:
+When this work tracks an issue (status edits only on an issue opened for
+this work; an existing issue gets the comments alone):
 
 **The menu.** When a draft exists, option 2 reads `Mark the draft PR ready
 for review` (on a detached HEAD, option 1 does), and the other options keep
@@ -292,8 +298,9 @@ today's text. With no draft, the menu is today's, word for word.
 - Pushed: comment naming the merge commit (`git rev-parse --short <base>`)
   with `merged`, close the issue as completed (Close with reason), then
   check the PR (PR state). The forge normally marks the draft merged on
-  its own; if it hasn't, close the PR with a comment naming the merge
-  commit (Close PR). The status is `Merged in #P`, or
+  its own; if it still shows open, check once more a few seconds later,
+  and only then close the PR with a comment naming the merge commit
+  (Close PR). The status is `Merged in #P`, or
   `Merged in <short sha>` when you had to close the PR.
 - Not pushed: comment that the work is merged locally and not pushed yet
   (`merged-locally`), with status `Merged locally, not pushed yet`. The
@@ -361,7 +368,9 @@ title and body. The full PR description Finishing writes stays as today.
 - Retry at the next milestone, after the marker check. A draft that never
   opened is retried at the next completed task's push.
 - If opening the issue failed, write no `**Issue:**` line until a retry
-  succeeds.
+  succeeds. Before retrying Create, Search for the same title: a timeout
+  may have created it. An open match carrying the opened marker is yours:
+  use it.
 - The final message lists what didn't post and the command that fixes it
   (`gh auth login`, `glab auth login`). Under autopilot, keep that list in
   `state.md` with the pending items until the summary.

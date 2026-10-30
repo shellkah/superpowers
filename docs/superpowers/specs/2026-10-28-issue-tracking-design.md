@@ -377,7 +377,9 @@ the run after part 1 was written.
   `jq --version`, `python3 --version`,
   `tests/claude-code/test-executing-plans-scripts.sh`, and one headless
   `run_claude_fork` session with this branch's plugin.
-- **Not yet consented:** creating `shellkah/superpowers-issues-scratch`,
-  and the four acceptance sessions against it (issues, comments, pushes,
-  draft PRs, `gh pr merge`). Part 1 needs neither. Until these notes say
-  otherwise, stop before any step that runs them.
+- **Acceptance (2026-10-30):** your human partner tests the skill
+  themselves. The run creates no scratch repo and makes no real GitHub
+  runs: nothing in the run calls a real forge. Part 2 is the workflow
+  wiring, tested against the stand-in `gh`; its acceptance is steps for
+  your human partner to try, replacing the four runs and the readability
+  read in How We'll Know It's Right.

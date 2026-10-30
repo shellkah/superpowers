@@ -61,6 +61,26 @@ for f in skills/subagent-driven-development/implementer-prompt.md skills/subagen
 done
 echo ""
 
+echo "Test 3: Each wired skill cites the tracking skill's sections (no Claude run)..."
+TRACKING_SKILL="$REPO_ROOT/skills/tracking-work-in-issues/SKILL.md"
+declare -A EXPECT=(
+    [brainstorming]='The Offer|Opening the Issue'
+)
+# Each section a file cites as "tracking-work-in-issues says (<S>[, <S>])", one per line;
+# lines are joined first, since the skills are hard-wrapped.
+cited_sections() {
+    tr '\n' ' ' < "$1" | tr -s ' ' | grep -oE 'tracking-work-in-issues says \([^)]*\)' \
+        | sed -E 's/^tracking-work-in-issues says \((.*)\)$/\1/' | sed 's/, /\n/g'
+}
+headings() { grep '^## ' "$TRACKING_SKILL" | sed 's/^## //'; }
+for skill in $(printf '%s\n' "${!EXPECT[@]}" | sort); do
+    cites="$(cited_sections "$REPO_ROOT/skills/$skill/SKILL.md")"
+    check "$skill cites only the tracking skill's ## sections" test -z "$(grep -vxF -f <(headings) <<< "$cites")"
+    IFS='|' read -ra want <<< "${EXPECT[$skill]}"
+    for s in "${want[@]}"; do check "$skill cites ($s)" grep -xF -- "$s" <<< "$cites"; done
+done
+echo ""
+
 if [[ $FAILURES -eq 0 ]]; then
     echo PASS
 else

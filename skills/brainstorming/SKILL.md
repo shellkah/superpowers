@@ -180,7 +180,16 @@ words. They can override it.
 branch, never on main or master unless they say so. Test first
 (superpowers:test-driven-development), run the check its description
 names, then superpowers:requesting-code-review and
-superpowers:finishing-a-development-branch.
+superpowers:finishing-a-development-branch. If it tracks an issue, open
+the issue when they approve the description, as
+superpowers:tracking-work-in-issues says (Opening the Issue); that skill
+then covers the issue through to finishing, starting with a draft PR
+after your first commit.
+
+**Issue tracking.** Once the work is sized as a small change or a
+project, your last round of questions includes the offer to track it in
+an issue, made as superpowers:tracking-work-in-issues says (The Offer).
+That skill also says when there is no offer.
 
 If it grows mid-task, stop, say so, and step up a size.
 
@@ -274,8 +283,10 @@ automated run is their approval of the full description, in chat or
 written, once the builder check's "theirs" questions are answered. Ask
 those first; they are the one stop autopilot keeps here.
 
-After a project's document is approved, the next step is the plan. For
-software, invoke superpowers:writing-plans and no other skill.
+After a project's document is approved, open the issue first if this
+work tracks one, as superpowers:tracking-work-in-issues says (Opening
+the Issue). Then the next step is the plan. For software, invoke
+superpowers:writing-plans and no other skill.
 </HARD-GATE>
 
 ## Red Flags

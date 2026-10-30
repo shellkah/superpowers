@@ -286,9 +286,9 @@ question. Send the question through the push channel too, where there is
 one: it is the message most worth reaching them away from the terminal.
 Wait for the answer, then continue from where it stopped.
 
-If this work tracks an issue (the spec's `**Issue:**` line says; `grep`
-for that line, do not read the spec), post the waiting-on-you milestone
-before you ask, and put the status back when the run resumes, as
+If this work tracks an issue (for a project, the spec's `**Issue:**` line
+says; `grep` for that line, do not read the spec), post the waiting-on-you
+milestone before you ask, and put the status back when the run resumes, as
 superpowers:tracking-work-in-issues says (Milestones).
 
 A blocker is:

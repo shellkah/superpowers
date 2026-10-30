@@ -143,6 +143,7 @@ scenario_plan_untracked() {
     check "loaded writing-plans" loaded "$work" writing-plans
     check "no gh call" num_is "$(gh_log_total)" 0
     check "the plan copies Issue: none" test "$(first_line_after_title "$plan")" = '**Issue:** none'
+    check "one handover file" one_line "$hand"
     check "the handover prompt has no Issue bullet" not grep -q '^- \*\*Issue:\*\*' "$hand"
     common_checks "$work"
 }

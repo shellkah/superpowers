@@ -226,6 +226,12 @@ message's Where to focus says so.]
 ---
 ```
 
+**Issue line.** When the spec carries an `**Issue:**` line under its
+title (superpowers:tracking-work-in-issues), copy it unchanged into the
+plan, one blank line under the title. A split plan's index carries it
+the same way, and each part file carries it one blank line under its
+Part line.
+
 ## Task Structure
 
 ````markdown
@@ -378,15 +384,23 @@ Then the bullets:
 - **Workspace:** set up the workspace as the skill says.
 - **Previous part:** continue on that branch in the worktree part N-1 used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
 - **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes. Before the plan's workspace is deleted, add a `## Rulings` section at the end of that file with every `Ruling:` and `minor (deferred)` line from the ledger: the next part's writer plans against them.
+- **Issue:** keep `<url>` current as `superpowers:tracking-work-in-issues` says.
 ```
 
 - **Branch:** split plans only.
 - **Workspace:** part 1 only.
 - **Previous part:** every part after part 1.
 - **Not the last part:** every part except the last.
+- **Issue:** every part, when the spec's `**Issue:**` line has a link (not `none`); `<url>` is that link.
 
 Under autopilot every part is written before its prompt, so every prompt
 opens with "Execute".
+
+**Plan ready.** If the plan tracks an issue, post the plan-ready
+milestone as superpowers:tracking-work-in-issues says (Milestones): in
+normal mode once the plan, or the index and part 1, are written, before
+the closing message; under autopilot just before you return control,
+once the plan or the index is written.
 
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover
@@ -414,6 +428,6 @@ there is one part. Then wait for your human partner
 to review the plan. Do not start executing it.
 
 **Under autopilot** (superpowers:autopilot is driving), skip the message and
-return control to autopilot. With a split, stop after the index; autopilot
+return control to autopilot, after Plan ready above. With a split, stop after the index; autopilot
 dispatches each part's writer, and the writer appends the part's handover
 prompt to the handover file as it goes.

@@ -16,7 +16,7 @@ root="" work="" wt="" # set by the fixtures (fxv)
 TURN="${CLAUDE_PROMPT_TIMEOUT:-300}"
 LONG="${CLAUDE_LONG_TIMEOUT:-900}"
 
-ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved" # each task appends its scenarios, in task order
+ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved plan_tracked plan_untracked" # each task appends its scenarios, in task order
 
 # ---- prompt pieces ----
 
@@ -98,6 +98,52 @@ scenario_brainstorm_project_approved() {
     check "spec carries the issue line" spec_line_is '**Issue:** https://github.com/acme/widgets/issues/1 (opened for this work)'
     check "spec change is committed" spec_committed
     check "main on the remote is unchanged" main_unchanged
+    common_checks "$work"
+}
+
+# ---- writing-plans ----
+P_WRITE="Use superpowers:writing-plans to write the implementation plan for $SPEC_PATH. The spec is approved."
+HANDOVER_BULLET_12='- **Issue:** keep `https://github.com/acme/widgets/issues/12` current as `superpowers:tracking-work-in-issues` says.'
+# The plan writing-plans wrote: the one .md under docs/superpowers/plans that is not an index, a part or a handover file.
+plan_doc() { find "$work/docs/superpowers/plans" -name '*.md' ! -name '*-index.md' ! -name '*-part-*' ! -name '*.handover.md' 2> /dev/null; }
+handover_doc() { find "$work/docs/superpowers/plans" -name '*.handover.md' 2> /dev/null; }
+one_line() { test "$(grep -c . <<< "$1")" = 1; }
+
+scenario_plan_tracked() {
+    setup || return
+    fx spec_only "$work" "$ISSUE12" || return
+    fx opened_issue_12 Planning noplan || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$LONG" "$P_WRITE"
+    local plan hand rel
+    plan="$(plan_doc)"; hand="$(handover_doc)"; rel="${plan#"$work"/}"
+    check "loaded writing-plans" loaded "$work" writing-plans
+    check "one plan, not split" one_line "$plan"
+    check "no index" test -z "$(find "$work/docs/superpowers/plans" -name '*-index.md')"
+    check "the plan carries the spec's Issue line under its title" test "$(first_line_after_title "$plan")" = "$ISSUE12"
+    check "one handover file" one_line "$hand"
+    check "the handover prompt has the Issue bullet" grep -qxF -- "$HANDOVER_BULLET_12" "$hand"
+    check "one comment on #12" num_is "$(named_count issue comment 12)" 1
+    check "it ends with the plan-ready marker" named_ends_with issue comment 12 '<!-- superpowers:plan-ready -->'
+    check "it says the plan waits for review" has_i "$(named_body issue comment 12)" 'review'
+    check "#12 status line is Planning" test "$(i_first 12)" = '**Status:** Planning'
+    check "#12 body names the plan path" hasf "$(i_body 12)" "$rel"
+    check "#12 body ends with the opened marker" body_ends_with_opened 12
+    check "no pr create" num_is "$(gh_log_count pr create)" 0
+    check "main on the remote is unchanged" main_unchanged
+    common_checks "$work"
+}
+
+scenario_plan_untracked() {
+    setup || return
+    fx spec_only "$work" '**Issue:** none' || return
+    run_moment "$work" "$LONG" "$P_WRITE"
+    local plan hand
+    plan="$(plan_doc)"; hand="$(handover_doc)"
+    check "loaded writing-plans" loaded "$work" writing-plans
+    check "no gh call" num_is "$(gh_log_total)" 0
+    check "the plan copies Issue: none" test "$(first_line_after_title "$plan")" = '**Issue:** none'
+    check "the handover prompt has no Issue bullet" not grep -q '^- \*\*Issue:\*\*' "$hand"
     common_checks "$work"
 }
 

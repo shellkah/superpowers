@@ -65,6 +65,7 @@ echo "Test 3: Each wired skill cites the tracking skill's sections (no Claude ru
 TRACKING_SKILL="$REPO_ROOT/skills/tracking-work-in-issues/SKILL.md"
 declare -A EXPECT=(
     [brainstorming]='The Offer|Opening the Issue'
+    [writing-plans]='Milestones'
 )
 # Each section a file cites as "tracking-work-in-issues says (<S>[, <S>])", one per line;
 # lines are joined first, since the skills are hard-wrapped.
@@ -79,6 +80,29 @@ for skill in $(printf '%s\n' "${!EXPECT[@]}" | sort); do
     IFS='|' read -ra want <<< "${EXPECT[$skill]}"
     for s in "${want[@]}"; do check "$skill cites ($s)" grep -xF -- "$s" <<< "$cites"; done
 done
+echo ""
+
+echo "Test 4: writing-plans carries the Issue line and the handover bullet (no Claude run)..."
+W="$REPO_ROOT/skills/writing-plans/SKILL.md"
+check "writing-plans has the exact handover bullet" grep -qxF -- '- **Issue:** keep `<url>` current as `superpowers:tracking-work-in-issues` says.' "$W"
+check "writing-plans says where the Issue line goes" grep -qF '**Issue line.**' "$W"
+echo ""
+
+echo "Test 5: A split plan and its issue (comprehension)..."
+mkdir -p "$TEST_ROOT/t5"
+run_moment "$TEST_ROOT/t5" "$T" "Read the superpowers:writing-plans skill. A project's spec carries this line under its title: **Issue:** https://github.com/acme/widgets/issues/12 (opened for this work). The plan is split into 2 parts. Answer using exactly this structure:
+Index carries the Issue line: <yes, no, or not stated>
+In a part file, the Issue line comes right after: <the line it follows, or not stated>
+Part 2's handover prompt has an Issue bullet: <yes, no, or not stated>
+Plan-ready milestone posted under autopilot: <yes, no, or not stated>
+With **Issue:** none in the spec instead, handover prompts have an Issue bullet: <yes, no, or not stated>
+$NS"
+check "the index carries the line" has_ei "$OUT" 'Index carries the Issue line:[^a-z]*yes\b'
+check "in a part file it follows the Part line" has_ei "$OUT" 'comes right after:.*part'
+check "part 2's prompt has the bullet" has_ei "$OUT" "Part 2's handover prompt has an Issue bullet:[^a-z]*yes\b"
+check "plan ready is posted under autopilot" has_ei "$OUT" 'posted under autopilot:[^a-z]*yes\b'
+check "Issue: none gets no bullet" has_ei "$OUT" 'handover prompts have an Issue bullet:[^a-z]*no\b'
+check_isolation "$TEST_ROOT/t5"
 echo ""
 
 if [[ $FAILURES -eq 0 ]]; then

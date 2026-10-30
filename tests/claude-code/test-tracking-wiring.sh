@@ -66,6 +66,8 @@ TRACKING_SKILL="$REPO_ROOT/skills/tracking-work-in-issues/SKILL.md"
 declare -A EXPECT=(
     [brainstorming]='The Offer|Opening the Issue'
     [writing-plans]='Milestones'
+    [executing-plans]='The Draft PR|Milestones'
+    [subagent-driven-development]='The Draft PR|Milestones'
 )
 # Each section a file cites as "tracking-work-in-issues says (<S>[, <S>])", one per line;
 # lines are joined first, since the skills are hard-wrapped.

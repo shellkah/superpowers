@@ -68,6 +68,7 @@ declare -A EXPECT=(
     [writing-plans]='Milestones'
     [executing-plans]='The Draft PR|Milestones'
     [subagent-driven-development]='The Draft PR|Milestones'
+    [finishing-a-development-branch]='The Draft PR|Finishing'
 )
 # Each section a file cites as "tracking-work-in-issues says (<S>[, <S>])", one per line;
 # lines are joined first, since the skills are hard-wrapped.
@@ -105,6 +106,15 @@ check "part 2's prompt has the bullet" has_ei "$OUT" "Part 2's handover prompt h
 check "plan ready is posted under autopilot" has_ei "$OUT" 'posted under autopilot:[^a-z]*yes\b'
 check "Issue: none gets no bullet" has_ei "$OUT" 'handover prompts have an Issue bullet:[^a-z]*no\b'
 check_isolation "$TEST_ROOT/t5"
+echo ""
+
+echo "Test 6: Finishing's menus stay word for word (no Claude run)..."
+F="$REPO_ROOT/skills/finishing-a-development-branch/SKILL.md"
+for line in '1. Merge back to <base-branch> locally' '2. Push and create a Pull Request' "3. Keep the branch as-is (I'll handle it later)" \
+    '1. Push as new branch and create a Pull Request' "2. Keep as-is (I'll handle it later)"; do
+    check "finishing's menu keeps: $line" grep -qxF -- "$line" "$F"
+done
+check "finishing names the draft option" grep -qF 'Mark the draft PR ready for review' "$F"
 echo ""
 
 if [[ $FAILURES -eq 0 ]]; then

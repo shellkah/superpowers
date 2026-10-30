@@ -16,7 +16,7 @@ root="" work="" wt="" # set by the fixtures (fxv)
 TURN="${CLAUDE_PROMPT_TIMEOUT:-300}"
 LONG="${CLAUDE_LONG_TIMEOUT:-900}"
 
-ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved plan_tracked plan_untracked exec_task1_opens_draft exec_untracked exec_stop_posts_waiting exec_part_done exec_draft_fails sdd_task1_opens_draft sdd_executor_stays_off_forge" # each task appends its scenarios, in task order
+ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved plan_tracked plan_untracked exec_task1_opens_draft exec_untracked exec_stop_posts_waiting exec_part_done exec_draft_fails sdd_task1_opens_draft sdd_executor_stays_off_forge finish_menu_ready_dev finish_menu_untracked finish_menu_draft_closed finish_option1_pushed finish_option3_paused finish_discard_confirmed finish_on_default_branch" # each task appends its scenarios, in task order
 
 # ---- prompt pieces ----
 
@@ -304,6 +304,142 @@ scenario_sdd_executor_stays_off_forge() {
     check "no gh call" num_is "$(gh_log_total)" 0
     check "version-flag is not on the remote" test -z "$(bare_ref "$root" version-flag)"
     common_checks "$wt"
+}
+
+# ---- finishing-a-development-branch ----
+C_FINISH_USE='Implementation of the plan at docs/superpowers/plans/2026-01-01-version-flag.md is complete on this branch: its tests pass, and there were no rulings or deferred minors. Use superpowers:finishing-a-development-branch.'
+menu_has() { hasf "$(tr -d '*' <<< "$OUT")" "$1"; }   # bold markup aside
+close_pr() { local f="$FAKE_GH_STATE/pulls/$1.json"; jq '.state = "CLOSED" | .closed = true' "$f" > "$f.tmp" && mv "$f.tmp" "$f"; }
+
+scenario_finish_menu_ready_dev() { # the base comes from the draft, not a question
+    fx_finish dev || return
+    run_moment "$wt" "$TURN" "$C_FINISH_USE $HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "menu: option 2 marks the draft ready" menu_has '2. Mark the draft PR ready for review'
+    check "menu: no Push and create a Pull Request" not menu_has 'Push and create a Pull Request'
+    check "menu: option 1 names dev" menu_has '1. Merge back to dev locally'
+    check "menu: option 3 keeps its text" menu_has "3. Keep the branch as-is (I'll handle it later)"
+    check "does not ask for the base" not has_i "$OUT" 'is that correct'
+    check "after turn 1: no forge write" num_is "$(gh_write_count)" 0
+    continue_moment "$wt" "$TURN" '2'
+    finish_ready_checks nonclosing "$OUT2"
+}
+
+scenario_finish_menu_untracked() { # no Issue line at all: today's menu, no gh call
+    setup || return
+    fx version_flag_docs "$work" || return
+    fxv wt work_branch "$work" main checkout || return
+    fx task2_commit "$wt" || return
+    run_moment "$wt" "$TURN" "$C_FINISH_USE This branch was cut from main. $HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "no gh call" num_is "$(gh_log_total)" 0
+    for line in '1. Merge back to main locally' '2. Push and create a Pull Request' "3. Keep the branch as-is (I'll handle it later)"; do
+        check "menu has: $line" menu_has "$line"
+    done
+    check "no Mark the draft PR" not menu_has 'Mark the draft PR'
+    check "version-flag is not on the remote" test -z "$(bare_ref "$root" version-flag)"
+    common_checks "$wt"
+}
+
+scenario_finish_menu_draft_closed() {
+    fx_finish main || return
+    fx close_pr 13 || return
+    run_moment "$wt" "$TURN" "$C_FINISH_USE This branch was cut from main. $HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "menu: option 2 is today's" menu_has '2. Push and create a Pull Request'
+    check "menu: no Mark the draft PR" not menu_has 'Mark the draft PR'
+    check "after turn 1: no forge write" num_is "$(gh_write_count)" 0
+    continue_moment "$wt" "$TURN" '2'
+    check "version-flag is on the remote at HEAD" same_ref "$(bare_ref "$root" version-flag)" "$(git -C "$wt" rev-parse HEAD)"
+    check "one pr create" num_is "$(gh_log_count pr create)" 1
+    check "it is not a draft" not gh_log_has_flag pr create '--draft|-d'
+    check "its base is main" gh_log_has_flag pr create '--base|-B' main
+    check "its body closes #12" hasf "$(gh_log_body pr create)" 'Closes #12'
+    check "a comment on #12 ends with the pr-ready marker" named_ends_with issue comment 12 '<!-- superpowers:pr-ready -->'
+    check "#12 status line is ready for review on PR #14" test "$(i_first 12)" = '**Status:** Ready for review: PR #14'
+    common_checks "$wt" full-pr
+}
+
+scenario_finish_option1_pushed() {
+    fx_finish_pushed || return
+    local tip
+    tip="$(git -C "$wt" rev-parse version-flag)"
+    run_moment "$wt" "$TURN" "$C_FINISH_USE Your human partner has already chosen option 1, Merge back to main locally. $HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "after turn 1: the version-flag tip is merged into local main" git -C "$wt" merge-base --is-ancestor "$tip" main
+    check "after turn 1: main on the remote is unchanged" main_unchanged
+    check "after turn 1: no forge write" num_is "$(gh_write_count)" 0
+    check "after turn 1: asks about pushing" has_i "$OUT" 'push'
+    continue_moment "$wt" "$TURN" 'Yes, push main.'
+    local local_main
+    local_main="$(git -C "$wt" rev-parse main)"
+    check "remote main is local main" same_ref "$(bare_ref "$root" main)" "$local_main"
+    check "a comment on #12 ends with the merged marker" named_ends_with issue comment 12 '<!-- superpowers:merged -->'
+    check "that comment has the short sha" hasf "$(named_body_ending issue comment 12 '<!-- superpowers:merged -->')" "${local_main:0:7}"
+    check "an issue close naming #12" ge "$(named_count issue close 12)" 1
+    check "#12 is closed" issue_state_is 12 state CLOSED
+    check "#12 is closed as completed" issue_state_is 12 stateReason COMPLETED
+    check "looked at PR #13" ge "$(gh_log_count pr view)" 1
+    check "one pr close naming #13" num_is "$(named_count pr close 13)" 1
+    check "the pr close carries a body" named_body_not_null pr close 13
+    check "#12 status line is Merged in" starts "$(i_first 12)" '**Status:** Merged in'
+    common_checks "$wt"
+}
+
+scenario_finish_option3_paused() {
+    fx_finish main || return
+    run_moment "$wt" "$TURN" "$C_FINISH_USE Your human partner has already chosen option 3, Keep the branch as-is."
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "a comment on #12 ends with the paused marker" named_ends_with issue comment 12 '<!-- superpowers:paused -->'
+    check "that comment names the branch" hasf "$(named_body_ending issue comment 12 '<!-- superpowers:paused -->')" 'version-flag'
+    check "#12 status line is paused on the branch" test "$(i_first 12)" = '**Status:** Paused on branch `version-flag`'
+    check "no pr close" num_is "$(gh_log_count pr close)" 0
+    check "no pr ready" num_is "$(gh_log_count pr ready)" 0
+    common_checks "$wt"
+}
+
+scenario_finish_discard_confirmed() {
+    fx_finish_pushed || return
+    run_moment "$wt" "$TURN" "$C_FINISH_USE Your human partner asks you to discard this work entirely. $HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$wt" finishing-a-development-branch
+    check "after turn 1: no forge write" num_is "$(gh_write_count)" 0
+    check "after turn 1: version-flag is still on the remote" test -n "$(bare_ref "$root" version-flag)"
+    check "after turn 1: the confirmation names #13" hasf "$OUT" '#13'
+    check "after turn 1: the confirmation says discard" hasf "$OUT" 'discard'
+    check "after turn 1: the confirmation mentions the remote" has_ei "$OUT" 'origin|remote|pushed'
+    continue_moment "$wt" "$TURN" 'discard'
+    check "one pr close naming #13" num_is "$(named_count pr close 13)" 1
+    check "version-flag is gone from the remote" test -z "$(bare_ref "$root" version-flag)"
+    check "an issue comment or close for #12 ends with the dropped marker" dropped_marker_posted
+    check "the issue close on #12 says not planned" has_i "$(named_arg issue close 12 '--reason|-r')" 'not planned'
+    check "#12 is closed as not planned" issue_state_is 12 stateReason NOT_PLANNED
+    check "#12 status line is Dropped" test "$(i_first 12)" = '**Status:** Dropped'
+    check "main is still on the remote, unchanged" main_kept
+    common_checks "$wt"
+}
+
+scenario_finish_on_default_branch() { # a small change built straight on main: nothing to merge
+    setup || return
+    fx opened_issue_12 Building noplan || return
+    printf '%s\n' '#!/bin/sh' 'if [ "$1" = "--version" ]; then echo 1.0.0; exit 0; fi' 'echo "Hello, ${1:-world}!"' > "$work/hello.sh" || return
+    fx git -C "$work" commit -q -am 'Add a --version flag' || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$TURN" 'Your human partner approved a small change and asked you to build it directly on main: make hello.sh print 1.0.0 for --version. It tracks https://github.com/acme/widgets/issues/12 (opened for this work). The change is committed on main, and bash test.sh passes. Use superpowers:finishing-a-development-branch. Your human partner has already chosen option 1, Merge back to main locally. '"$HEADLESS"
+    check "loaded finishing-a-development-branch" loaded "$work" finishing-a-development-branch
+    check "after turn 1: main on the remote is unchanged" main_unchanged
+    check "after turn 1: no forge write" num_is "$(gh_write_count)" 0
+    check "after turn 1: asks about pushing" has_i "$OUT" 'push'
+    continue_moment "$work" "$TURN" 'Yes, push main.'
+    local local_main
+    local_main="$(git -C "$work" rev-parse main)"
+    check "remote main is local main" same_ref "$(bare_ref "$root" main)" "$local_main"
+    check "a comment on #12 ends with the merged marker" named_ends_with issue comment 12 '<!-- superpowers:merged -->'
+    check "that comment has the short sha" hasf "$(named_body_ending issue comment 12 '<!-- superpowers:merged -->')" "${local_main:0:7}"
+    check "#12 is closed as completed" issue_state_is 12 stateReason COMPLETED
+    check "no pr create" num_is "$(gh_log_count pr create)" 0
+    check "no pr close" num_is "$(gh_log_count pr close)" 0
+    check "#12 status line is Merged in" starts "$(i_first 12)" '**Status:** Merged in'
+    common_checks "$work"
 }
 
 run_scenarios 'workflow skills reach the tracking skill' "$ALL_SCENARIOS"

@@ -54,6 +54,10 @@ plan, the conversation, or the branch's upstream. If it is not already
 known, ask: "This branch split from <your best guess> - is that correct?"
 Confirm before merging: merging into the wrong base is expensive to undo.
 
+If this work tracks an issue, find its draft PR first, as
+superpowers:tracking-work-in-issues says (The Draft PR): while one is
+open, its base is the base branch, and you don't ask.
+
 ## Step 4: Present Options
 
 **Normal repo and named-branch worktree — present exactly these 3 options:**
@@ -78,6 +82,12 @@ Implementation complete. You're on a detached HEAD (externally managed workspace
 
 Which option?
 ```
+
+If this work tracks an issue and its draft PR is open, option 2 reads
+`Mark the draft PR ready for review` (on a detached HEAD, option 1
+does), and every other option keeps its text, as
+superpowers:tracking-work-in-issues says (Finishing). With no open
+draft, the menu is exactly as written.
 
 Present the menu exactly as written — concise, with every option coming
 from the list above. Discarding the work happens only in response to your
@@ -107,6 +117,12 @@ If tests fail on the merged result: stop, leave the worktree and branch in
 place, and investigate — nothing has been pushed, so the merge is local
 and recoverable.
 
+If this work tracks an issue, once the merged result is green, ask
+whether to push <base-branch> and update the issue as
+superpowers:tracking-work-in-issues says (Finishing), before cleanup.
+When that work was committed straight onto <base-branch>, there is
+nothing to merge: start at that question.
+
 Once the merged result is green: clean up the worktree (Step 6), then
 delete the branch:
 
@@ -115,6 +131,11 @@ git branch -d <feature-branch>
 ```
 
 ### Option 2: Push and Create PR
+
+If this work tracks an issue, run this option as
+superpowers:tracking-work-in-issues says (Finishing): an open draft PR
+gets the full description below and is marked ready, instead of a new
+PR.
 
 ```bash
 git push -u origin <feature-branch>
@@ -138,6 +159,9 @@ Keep the worktree — your human partner iterates on PR feedback there.
 
 Report: "Keeping branch <name>. Worktree preserved at <path>."
 
+If this work tracks an issue, post the paused milestone as
+superpowers:tracking-work-in-issues says (Finishing).
+
 ### If your human partner asks to discard the work
 
 This path exists only as a response to an explicit request to throw the
@@ -151,6 +175,10 @@ This will permanently delete:
 
 Type 'discard' to confirm.
 ```
+
+If this work tracks an issue, the confirmation also lists the pushed
+branch and the draft PR, and the discard closes them and updates the
+issue as superpowers:tracking-work-in-issues says (Finishing).
 
 Wait for that exact confirmation. When it arrives:
 

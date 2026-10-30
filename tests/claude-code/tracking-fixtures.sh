@@ -717,9 +717,10 @@ force_pushes() {
 }
 
 # Everything every scenario must keep true. <dir> is where the session ran.
-# Usage: common_checks <dir>
+# Usage: common_checks <dir> [full-pr]  (full-pr: pr create bodies are finishing's full
+# description, which stays as today, so the writing-rules check skips them)
 common_checks() {
-    local dir="$1" v bad f n i cmd w1 w2 cmds
+    local dir="$1" mode="${2:-}" v bad f n i cmd w1 w2 cmds
     v="$(assert_calls_name_repo acme/widgets)" || true
     if [[ -z "$v" ]]; then check "every gh call names acme/widgets" true; else
         sed 's/^/    /' <<< "$v"
@@ -730,6 +731,7 @@ common_checks() {
     f="$(mktemp)"
     for cmd in "issue create" "issue comment" "issue edit" "issue close" "pr create" "pr close"; do
         read -r w1 w2 <<< "$cmd"
+        [[ "$mode" == full-pr && "$cmd" == "pr create" ]] && continue
         n="$(gh_log_count "$w1" "$w2")"
         for ((i = 1; i <= n; i++)); do
             gh_log_body "$w1" "$w2" "$i" > "$f"

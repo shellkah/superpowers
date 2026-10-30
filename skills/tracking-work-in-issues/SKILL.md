@@ -127,9 +127,15 @@ the request asks, and brainstorming's one plain line says so.
 - Under autopilot: when the spec is committed in step 2, or for a small
   change, when the description goes out.
 
-**First:** a resumed session whose issue already carries
-`<!-- superpowers:opened -->` after its last `dropped` marker (View with
-comments) doesn't post again.
+**First:**
+
+- A resumed session whose issue already carries
+  `<!-- superpowers:opened -->` after its last `dropped` marker (View with
+  comments) doesn't post again.
+- If the offer was made while the CLI was logged out, Repo facts and
+  Search never ran: run them now. Issues off: no issue, and one line says
+  so. A public repo: show the text first (below). An open match: ask the
+  picker again before posting anything.
 
 **A new issue** (Create):
 
@@ -251,9 +257,9 @@ gets comments only.
 | Waiting on you | `waiting-<YYYYMMDDHHMM>` | whoever stops; under autopilot, the main session | the work stops for a question only your human partner can answer | `Waiting on a decision`; when the work resumes, the previous text again, with no comment |
 | Ready, merged, paused, dropped | `pr-ready`, `merged`, `merged-locally`, `paused`, `dropped` | finishing-a-development-branch | see Finishing | see Finishing |
 
-- **Plan ready** also adds the plan's path (the index's, for a split plan)
-  to the body, above the marker. In normal mode its comment says the plan
-  waits for review.
+- **Plan ready**, on an issue opened for this work, also adds the plan's
+  path (the index's, for a split plan) to the body, above the marker. In
+  normal mode its comment says the plan waits for review.
 - **A part done** says what the finished part gives a user, never which
   part of how many.
 - **Waiting on you** says what decision the work waits on, in the spec's
@@ -301,8 +307,9 @@ open.
 
 - The typed-`discard` confirmation also lists the pushed branch and the
   draft PR.
-- On confirmation: close the draft PR (Close PR), then
-  `git push origin --delete <branch>`.
+- On confirmation: close the draft PR (Close PR), then delete the pushed
+  work branch on the remote (`git push origin --delete <branch>`), never
+  the default or base branch.
 - An issue opened for this work: comment (`dropped`), close it as not
   planned, status `Dropped`.
 - An existing issue stays open: comment that this attempt was dropped

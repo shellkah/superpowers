@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Test: the workflow skills reach superpowers:tracking-work-in-issues. Fast
+# checks over the shared scenario helpers and the skill files, then real
+# headless sessions at the moments each skill hands over to the tracking skill.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$SCRIPT_DIR/test-helpers.sh"
+source "$SCRIPT_DIR/tracking-fixtures.sh"
+
+root="" work="" wt="" # set by the fixtures (fxv)
+T="${CLAUDE_PROMPT_TIMEOUT:-200}"
+FAILURES=0
+TEST_ROOT="$(mktemp -d)"
+SESSION_ROOT="$TEST_ROOT"
+trap 'rm -rf "$TEST_ROOT"' EXIT
+NS="Where the skills do not say, answer 'not stated' instead of inferring."
+
+echo "=== Test: workflow skills reach the tracking skill ==="
+echo ""
+
+echo "Test 1: Shared scenario helpers (no Claude run)..."
+fx_finish dev
+check "fx_finish dev: PR 13's base is dev" test "$(pr_json 13 | jq -r .baseRefName)" = dev
+check "fx_finish dev: #12's status names the draft" test "$(i_first 12)" = '**Status:** Building: draft PR #13'
+check "fx_finish dev: version-flag is on the remote" test -n "$(bare_ref "$root" version-flag)"
+check "main_unchanged holds before any push" main_unchanged
+p="$(executor_prompt "$work" "$wt" "$root/run" subagent-driven-development)"
+check "executor_prompt fills every placeholder" executor_prompt_ok "$p"
+check "executor_prompt names the skill it is given" hasf "$p" 'use `superpowers:subagent-driven-development`'
+check "executor_prompt defaults to executing-plans" hasf "$(executor_prompt "$work" "$wt" "$root/run")" 'use `superpowers:executing-plans`'
+s="$TEST_ROOT/spec"; fxv sw tracking_repo "$s"; spec_only "$sw" "$ISSUE12"
+check "spec_only commits the spec with its line" test "$(git -C "$sw" show HEAD:"$SPEC_PATH" | sed -n 3p)" = "$ISSUE12"
+check "spec_only pushes main" same_ref "$(bare_ref "$s" main)" "$(git -C "$sw" rev-parse main)"
+d="$TEST_ROOT/transcript-dir"; mkdir -p "$d"
+proj="$HOME/.claude/projects/$(cd "$d" && pwd -P | sed 's|[^a-zA-Z0-9]|-|g')"; mkdir -p "$proj"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superpowers:finishing-a-development-branch"}}]}}' \
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/x/skills/tracking-work-in-issues/SKILL.md"}}]}}' > "$proj/fake.jsonl"
+check "session_skills reads a Skill call" loaded "$d" finishing-a-development-branch
+check "session_skills reads a SKILL.md read" loaded "$d" tracking-work-in-issues
+check "loaded is false for a skill not loaded" not loaded "$d" brainstorming
+rm -rf "$proj"
+for f in test-tracking-wiring-integration.sh test-tracking-work-in-issues-integration.sh; do
+    out="$(TRACKING_SCENARIOS=no_such bash "$SCRIPT_DIR/$f" 2>&1)"; rc=$?
+    check "$f: an unknown scenario fails without a session" test "$rc" = 1
+    check "$f: says so" hasf "$out" '[FAIL] no such scenario: no_such'
+    check "$f: and ends FAIL (1 scenarios)" hasf "$out" 'FAIL (1 scenarios)'
+done
+rm -rf "$root"
+SESSION_ROOT="$TEST_ROOT"
+echo ""
+
+echo "Test 2: Subagent prompts leave the forge alone (no Claude run)..."
+for f in skills/subagent-driven-development/implementer-prompt.md skills/subagent-driven-development/task-reviewer-prompt.md \
+    skills/subagent-driven-development/re-review-prompt.md skills/writing-plans/part-writer-prompt.md \
+    skills/writing-plans/cross-part-check-prompt.md skills/brainstorming/builder-check-prompt.md \
+    skills/autopilot/executor-prompt.md skills/requesting-code-review/code-reviewer.md; do
+    check "$f exists" test -f "$REPO_ROOT/$f"
+    check "$f does not send its subagent to the tracking skill" not grep -q 'tracking-work-in-issues' "$REPO_ROOT/$f"
+done
+echo ""
+
+if [[ $FAILURES -eq 0 ]]; then
+    echo PASS
+else
+    echo "FAIL ($FAILURES)"
+    exit 1
+fi

@@ -14,7 +14,6 @@ source "$SCRIPT_DIR/tracking-fixtures.sh"
 
 root="" work="" wt="" # set by the fixtures (fxv)
 TURN="${CLAUDE_PROMPT_TIMEOUT:-300}"
-JOBS="${TRACKING_JOBS:-1}"
 
 ALL_SCENARIOS="offer_picker offer_issues_off offer_logged_out open_project_new open_existing
 open_public_existing open_no_issue open_small_change_by_request open_create_fails plan_ready
@@ -23,75 +22,9 @@ waiting_on_you finish_ready finish_ready_non_default_base finish_merge_pushed
 finish_merge_not_pushed finish_keep finish_discard_opened finish_discard_existing comment_fails
 quick_task_named_issue executor_stays_off_forge offer_public"
 
-BLOB=https://github.com/acme/widgets/blob/version-flag
-PR13=https://github.com/acme/widgets/pull/13
-NOT_CLOSING='(won.t|will not|doesn.t|does not|not).{0,40}clos'
-
 # ---- helpers shared by the scenarios ----
 
 OFFER_SENTENCE='If this work can track an issue, make the offer as superpowers:tracking-work-in-issues says (The Offer), as your only question.'
-
-setup() { # [ssh|https|local]
-    root="$(mktemp -d)" || { check "fixture: mktemp failed" false; return 1; }
-    SESSION_ROOT="$root"
-    fxv work tracking_repo "$root" "${1:-ssh}" || return 1
-    fx tracking_env "$root" || return 1
-}
-
-i_body() { issue_json "$1" | jq -r '.body'; }
-i_first() { first_line "$(i_body "$1")"; }
-same_ref() { [[ -n "$1" && "$1" == "$2" ]]; }
-main_unchanged() { [[ "$(bare_ref "$root" main)" == "$main_before" ]]; }
-main_kept() { [[ -n "$main_before" && "$(bare_ref "$root" main)" == "$main_before" ]]; }
-num_is() { test "$1" = "$2"; }
-ge() { test "$1" -ge "$2"; }
-body_ends_with_opened() { [[ "$(last_nonempty "$(i_body "$1")")" == "$OPENED_MARKER" ]]; }
-issue_state_is() { [[ "$(issue_json "$1" | jq -r ".$2")" == "$3" ]]; }
-pr_is_draft_false() { [[ "$(pr_json 13 | jq -r '.isDraft')" == false ]]; }
-matches_ei() { grep -qiE -- "$2" <<< "$1"; }
-spec_line_is() { [[ "$(first_line_after_title "$work/$SPEC_PATH")" == "$1" ]]; }
-spec_committed() { git -C "$work" diff --quiet HEAD -- "$SPEC_PATH"; }
-spec_has_no_issue_line() { ! grep -q '^\*\*Issue:\*\*' "$work/$SPEC_PATH"; }
-
-# any call of <w1> <w2> naming <N> has a body containing <str>
-named_body_has() { named_calls "$1" "$2" "$3" | jq -e --arg s "$4" 'select((.body // "") | contains($s))' > /dev/null; }
-# some call naming <N> ends with <marker>
-# (grep without -q reads all its input: under pipefail, -q quitting early would
-# kill the producer with SIGPIPE and fail the check)
-named_ends_with() { named_last_lines "$1" "$2" "$3" | grep -xF -- "$4" > /dev/null; }
-dropped_marker_posted() {
-    { named_last_lines issue comment 12; named_last_lines issue close 12; } | grep -xF '<!-- superpowers:dropped -->' > /dev/null
-}
-starts() { [[ "$1" == "$2"* ]]; }
-# the call has a non-null body
-named_body_not_null() { named_calls "$1" "$2" "$3" | jq -e 'select(.body != null)' > /dev/null; }
-
-# the model's first-turn output and a title or body ready to compare
-posted_title() { gh_log_arg issue create '--title|-t'; }
-posted_body() { gh_log_body issue create; }
-
-# Build the project docs, #12 opened, and the work branch.
-# Usage: fx_building worktree|checkout [base]
-fx_building() {
-    setup || return 1
-    fx version_flag_docs "$work" "$ISSUE12" || return 1
-    fx opened_issue_12 || return 1
-    fxv wt work_branch "$work" "${2:-main}" "$1" || return 1
-    main_before="$(bare_ref "$root" main)"
-}
-
-fx_finish() { # checkout, pushed, draft PR open, Task 2 committed (unpushed); arg: base
-    local base="${1:-main}"
-    setup || return 1
-    fx version_flag_docs "$work" "$ISSUE12" || return 1
-    fx opened_issue_12 || return 1
-    if [[ "$base" != main ]]; then fx dev_base "$work" || return 1; fi
-    fxv wt work_branch "$work" "$base" checkout || return 1
-    fx push_work "$wt" || return 1
-    fx draft_pr_13 "$base" || return 1
-    fx task2_commit "$wt" || return 1
-    main_before="$(bare_ref "$root" main)"
-}
 
 # ---- scenarios ----
 
@@ -339,26 +272,6 @@ scenario_waiting_on_you() {
     common_checks "$wt"
 }
 
-# Checks shared by the two finish_ready scenarios. Arg: plain|nonclosing
-finish_ready_checks() {
-    local cbody
-    cbody="$(named_body_ending issue comment 12 '<!-- superpowers:pr-ready -->')"
-    check "version-flag is on the remote at HEAD" same_ref "$(bare_ref "$root" version-flag)" "$(git -C "$wt" rev-parse HEAD)"
-    check "a pr edit on #13 whose body closes #12" named_body_has pr edit 13 'Closes #12'
-    check "one pr ready" num_is "$(gh_log_count pr ready)" 1
-    check "PR #13 is no longer a draft" pr_is_draft_false
-    check "a comment on #12 ends with the pr-ready marker" named_ends_with issue comment 12 '<!-- superpowers:pr-ready -->'
-    if [[ "$1" == plain ]]; then
-        check "the pr-ready comment does not say the issue won't close" not matches_ei "$cbody" "$NOT_CLOSING"
-    else
-        check "the pr-ready comment says the issue won't close" matches_ei "$cbody" "$NOT_CLOSING"
-        check "the output says the issue won't close" matches_ei "$OUT" "$NOT_CLOSING"
-    fi
-    check "#12 status line is ready for review" test "$(i_first 12)" = '**Status:** Ready for review: PR #13'
-    check "no pr create" num_is "$(gh_log_count pr create)" 0
-    common_checks "$wt"
-}
-
 scenario_finish_ready() {
     fx_finish main || return
     run_moment "$wt" "$TURN" "$C_FINISH Your human partner chose \"Mark the draft PR ready for review\". $(moment 'carry that out' 'Finishing'), then stop."
@@ -369,11 +282,6 @@ scenario_finish_ready_non_default_base() {
     fx_finish dev || return
     run_moment "$wt" "$TURN" "$C_FINISH Your human partner chose \"Mark the draft PR ready for review\". $(moment 'carry that out' 'Finishing'), then stop."
     finish_ready_checks nonclosing
-}
-
-fx_finish_pushed() {
-    fx_finish main || return 1
-    fx push_work "$wt" || return 1
 }
 
 MERGE_PROMPT="$C_FINISH"' Your human partner chose "Merge back to main locally". '
@@ -490,40 +398,6 @@ scenario_quick_task_named_issue() {
     common_checks "$work"
 }
 
-# The executor's prompt is skills/autopilot/executor-prompt.md's template (the
-# text between its ```` fences), read at run time, with every placeholder
-# filled: the handover prompt (writing-plans' format, paths made absolute, with
-# the **Issue:** bullet), branch, worktree, run notes, and a run folder in the
-# scenario's temp root. The last line bounds the run to the moment after
-# Task 1, so it fits one turn.
-EXECUTOR_PROMPT_MD="$SCRIPT_DIR/../../skills/autopilot/executor-prompt.md"
-
-executor_prompt() { # <work> <worktree> <run dir>
-    local t handover notes
-    t="$(awk '/^````$/ { n++; next } n == 1' "$EXECUTOR_PROMPT_MD")"
-    handover="Execute part 1 of 1 of the implementation plan at \`$1/$PLAN_PATH\` (spec: \`$1/$SPEC_PATH\`).
-
-- **Skill:** use \`superpowers:executing-plans\`.
-- **Why this mode:** two small tasks in one short script, done in order.
-- **Workspace:** set up the workspace as the skill says.
-- **Issue:** keep \`https://github.com/acme/widgets/issues/12\` current as \`superpowers:tracking-work-in-issues\` says."
-    notes='- **Services:** none; the work needs none.
-- **Checkpoints:** no.
-- **PRs:** one, from `version-flag` against `main`.'
-    t="${t//\[HANDOVER_PROMPT\]/"$handover"}"
-    t="${t//\[BRANCH\]/version-flag}"
-    t="${t//\[WORKTREE_PATH\]/"$2"}"
-    t="${t//\[RUN_NOTES\]/"$notes"}"
-    t="${t//\[RUN_DIR\]/"$3"}"
-    printf '%s\n\n%s' "$t" 'Task 1 has just completed: its tests passed and it is committed in this worktree. Do what comes next after Task 1, then stop before Task 2 and report.'
-}
-
-# The filled prompt names its template's key sentence and leaves no placeholder.
-executor_prompt_ok() {
-    grep -qF 'You are running this part unattended for your human partner, under' <<< "$1" \
-        && ! grep -qE '\[(HANDOVER_PROMPT|BRANCH|WORKTREE_PATH|RUN_NOTES|RUN_DIR)\]' <<< "$1"
-}
-
 scenario_executor_stays_off_forge() {
     fx_building worktree || return
     fx mkdir -p "$root/run" || return
@@ -547,69 +421,4 @@ scenario_offer_public() {
     common_checks "$work"
 }
 
-# ---- runner ----
-
-RESULTS="$(mktemp -d)"
-trap 'rm -rf "$RESULTS"' EXIT
-
-run_scenario() { # <name>: runs in a subshell, writes <name>.out and <name>.rc
-    local name="$1"
-    (
-        FAILURES=0
-        OUT=""
-        OUT2=""
-        if ! declare -F "scenario_$name" > /dev/null; then
-            echo "  [FAIL] no such scenario: $name"
-            FAILURES=1
-        else
-            echo "=== scenario: $name ==="
-            "scenario_$name"
-            if [[ $FAILURES -gt 0 ]]; then
-                show_run_context
-                if compgen -G "$FAKE_GH_STATE/issues/*.json" > /dev/null; then
-                    echo "  --- issues ---"
-                    jq -c '{number, title, state, stateReason, assignees: [.assignees[].login], body, comments: [.comments[].body]}' "$FAKE_GH_STATE"/issues/*.json | sed 's/^/    /'
-                fi
-                if compgen -G "$FAKE_GH_STATE/pulls/*.json" > /dev/null; then
-                    echo "  --- pull requests ---"
-                    jq -c '{number, state, isDraft, baseRefName, body}' "$FAKE_GH_STATE"/pulls/*.json | sed 's/^/    /'
-                fi
-            fi
-        fi
-        if [[ $FAILURES -gt 0 ]]; then echo "  RESULT: FAIL ($FAILURES checks)"; else echo "  RESULT: PASS"; fi
-        [[ -n "${root:-}" ]] && rm -rf "$root"
-        [[ $FAILURES -eq 0 ]]
-    ) > "$RESULTS/$name.out" 2>&1
-    echo $? > "$RESULTS/$name.rc"
-    if [[ "$(cat "$RESULTS/$name.rc")" == 0 ]]; then
-        echo "[done] $name: PASS" >&2
-    elif grep -q 'usage limit hit, no result' "$RESULTS/$name.out"; then
-        echo "[done] $name: FAIL (usage limit hit, no result)" >&2
-    else
-        echo "[done] $name: FAIL" >&2
-    fi
-}
-
-SCENARIOS="${TRACKING_SCENARIOS:-$ALL_SCENARIOS}"
-mapfile -t LIST < <(tr -s ' \n' '\n\n' <<< "$SCENARIOS" | sed '/^$/d')
-
-echo "=== Test: issue tracking, moment by moment (${#LIST[@]} scenarios, $JOBS at once) ==="
-for name in "${LIST[@]}"; do
-    while [[ "$(jobs -rp | wc -l)" -ge "$JOBS" ]]; do wait -n || true; done
-    run_scenario "$name" &
-done
-wait
-
-failed=0
-for name in "${LIST[@]}"; do
-    echo
-    cat "$RESULTS/$name.out"
-    [[ "$(cat "$RESULTS/$name.rc")" == 0 ]] || failed=$((failed + 1))
-done
-echo
-if [[ $failed -eq 0 ]]; then
-    echo PASS
-else
-    echo "FAIL ($failed scenarios)"
-    exit 1
-fi
+run_scenarios 'issue tracking, moment by moment' "$ALL_SCENARIOS"

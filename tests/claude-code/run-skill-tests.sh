@@ -59,12 +59,14 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Tests:"
             echo "  test-subagent-driven-development.sh  Test skill loading and requirements"
+            echo "  test-tracking-wiring.sh  workflow pointers to the tracking skill: static checks and two comprehension runs"
             echo ""
             echo "Integration Tests (use --integration):"
             echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
             echo "  test-writing-plans-integration.sh  writing-plans handover and split scenarios (~40 min; use --timeout 6000)"
             echo "  test-autopilot-integration.sh  autopilot end to end (~25 min; RUN_SPLIT=1 adds the two-part run, ~75 min; use --timeout 14400)"
             echo "  test-tracking-work-in-issues-integration.sh  tracking skill moments against a stand-in gh (~60-90 min; TRACKING_JOBS=4 cuts it to ~25; use --timeout 7200)"
+            echo "  test-tracking-wiring-integration.sh  each workflow skill reaches the tracking skill at its moment, against a stand-in gh (~26 scenarios; TRACKING_JOBS=4; use --timeout 7200)"
             exit 0
             ;;
         *)
@@ -90,6 +92,7 @@ tests=(
     "test-workflow-handoffs.sh"
     "test-tracking-work-in-issues.sh"
     "test-tracking-public-repo.sh"
+    "test-tracking-wiring.sh"
 )
 
 # Integration tests (slow, full execution)
@@ -98,6 +101,7 @@ integration_tests=(
     "test-writing-plans-integration.sh"
     "test-autopilot-integration.sh"
     "test-tracking-work-in-issues-integration.sh"
+    "test-tracking-wiring-integration.sh"
 )
 
 # Add integration tests if requested

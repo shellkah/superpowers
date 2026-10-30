@@ -139,6 +139,10 @@ check "the summary gives the issue link" has_ei "$OUT" 'Summary gives the issue 
 check_isolation "$TEST_ROOT/t7"
 echo ""
 
+echo "Test 8: The README lists the skill (no Claude run)..."
+check "README lists tracking-work-in-issues" grep -qF -- '- **tracking-work-in-issues** - ' "$REPO_ROOT/README.md"
+echo ""
+
 if [[ $FAILURES -eq 0 ]]; then
     echo PASS
 else

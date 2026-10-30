@@ -183,7 +183,7 @@ Each is a decision the spec left open or the index didn't settle, with its reaso
   - `session_commands <dir>`: prints the `command` input of every `Bash` tool call in every transcript under the Claude project directory for `<dir>` (same naming as `latest_transcript`), one per line, newlines inside a command replaced by `; `.
   - `check <description> <command> [args...]`: runs the command, prints `  [PASS] <description>` or `  [FAIL] <description>`, and increments the global `FAILURES` on failure.
 
-- [ ] **Step 1: Write the failing test `tests/claude-code/test-fake-gh.sh`**
+- [x] **Step 1: Write the failing test `tests/claude-code/test-fake-gh.sh`**
 
 Same shape as `test-executing-plans-scripts.sh`: `set -euo pipefail`, sources `test-helpers.sh` and `tracking-fixtures.sh`, a `FAILURES` counter, `check` lines, and a temp root removed on `EXIT`. Each numbered group below starts from a fresh `tracking_env` in its own directory. From group 4 on, it is seeded with `fake_issue 7 'Add a --version flag' ''`, `fake_issue 3 'Typo in README' '' alice` and `fake_pr 14 topic main true ''` (so new numbers start at 15), unless the group says otherwise. Assertions:
 
@@ -206,34 +206,34 @@ Same shape as `test-executing-plans-scripts.sh`: `set -euo pipefail`, sources `t
 
 The file ends by printing `PASS` and exiting 0, or `FAIL (<n>)` and exiting 1.
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `bash tests/claude-code/test-fake-gh.sh`
 Expected: FAIL, because `tracking-fixtures.sh` and `fake-gh/gh` don't exist yet.
 
-- [ ] **Step 3: Implement the stand-ins and helpers**
+- [x] **Step 3: Implement the stand-ins and helpers**
 
 Write `fake-gh/gh` to the contract above: one `argparse`-free dispatcher on `argv[0:2]`, a flag reader for long, short and `--flag=value` forms, and state read and written as JSON files. Write `fake-ssh` (body above), then `tracking-fixtures.sh` and the two `test-helpers.sh` functions. `setup_fake_gh` resolves the `fake-gh` directory from `${BASH_SOURCE[0]}`, the same way `run_claude_fork` finds the repo root. Make both stand-ins executable.
 
-- [ ] **Step 4: Run the test to see it pass**
+- [x] **Step 4: Run the test to see it pass**
 
 Run: `bash tests/claude-code/test-fake-gh.sh`
 Expected: every check `[PASS]`, then `PASS`.
 
 If only the canary (16) fails, the prepended `PATH` didn't reach Claude's Bash tool on this machine. In that case `setup_fake_gh` must also write `export PATH="<fake-gh>:$PATH"` to `<dir>/env.sh` and export `CLAUDE_ENV_FILE=<dir>/env.sh` (Claude Code sources that file before each Bash command). Re-run. The skill must still call plain `gh`; never point the session at an absolute path.
 
-- [ ] **Step 5: Lint**
+- [x] **Step 5: Lint**
 
 Run: `scripts/lint-shell.sh tests/claude-code/test-fake-gh.sh tests/claude-code/tracking-fixtures.sh tests/claude-code/test-helpers.sh tests/claude-code/fake-gh/fake-ssh && python3 -m py_compile tests/claude-code/fake-gh/gh`
 Expected: no findings, exit 0.
 
-- [ ] **Step 6: Register and run through the runner**
+- [x] **Step 6: Register and run through the runner**
 
 Add `"test-fake-gh.sh"` to `tests=(...)` in `run-skill-tests.sh`, after `"test-executing-plans-scripts.sh"`.
 Run: `cd tests/claude-code && ./run-skill-tests.sh --test test-fake-gh.sh`
 Expected: `STATUS: PASSED`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add tests/claude-code/fake-gh tests/claude-code/tracking-fixtures.sh tests/claude-code/test-helpers.sh tests/claude-code/test-fake-gh.sh tests/claude-code/run-skill-tests.sh
@@ -296,11 +296,11 @@ git commit -m "test(tracking): stand-in gh, test repos and issue text check"
 - `C_FINISH`: `Implementation of the plan at docs/superpowers/plans/2026-01-01-version-flag.md is complete on this branch: its tests pass, and there were no rulings or deferred minors. You are in superpowers:finishing-a-development-branch.`
 - `MOMENT(<what>, <Section>)`: `If this work tracks an issue, <what> as superpowers:tracking-work-in-issues says (<Section>)` (the shape of part 2's pointers).
 
-- [ ] **Step 1: Add the scenario fixtures to `tracking-fixtures.sh`**
+- [x] **Step 1: Add the scenario fixtures to `tracking-fixtures.sh`**
 
 As listed above.
 
-- [ ] **Step 2: Write `tests/claude-code/test-tracking-work-in-issues.sh` (fast)**
+- [x] **Step 2: Write `tests/claude-code/test-tracking-work-in-issues.sh` (fast)**
 
 Same shape as `test-writing-plans-handover.sh`, but failures accumulate in `FAILURES` instead of exiting on the first. `T="${CLAUDE_PROMPT_TIMEOUT:-200}"`: four Claude runs at 200 s stay inside the runner's 900 s budget per file.
 
@@ -337,7 +337,7 @@ Same shape as `test-writing-plans-handover.sh`, but failures accumulate in `FAIL
 
 Ends with `PASS` or `FAIL (<n>)`.
 
-- [ ] **Step 3: Write `tests/claude-code/test-tracking-public-repo.sh` (fast)**
+- [x] **Step 3: Write `tests/claude-code/test-tracking-public-repo.sh` (fast)**
 
 Fixture: `tracking_repo` (ssh), `tracking_env`, `fake_repo_facts PUBLIC true main`. Timeout 240 per turn.
 - Turn 1. Prompt: `We have agreed on a small change and I approve it: make hello.sh accept a --name option. Track this in a new issue. Do not build anything yet: stop once the issue step is done.` Checks: `gh_log_count issue create` is 0; `OUT` contains `public`; `OUT` contains `Status:`.
@@ -350,7 +350,7 @@ Fixture: `tracking_repo` (ssh), `tracking_env`, `fake_repo_facts PUBLIC true mai
   - The body's last non-empty line is `<!-- superpowers:opened -->`.
   - `common_checks`.
 
-- [ ] **Step 4: Write `tests/claude-code/test-tracking-work-in-issues-integration.sh`**
+- [x] **Step 4: Write `tests/claude-code/test-tracking-work-in-issues-integration.sh`**
 
 Each scenario is a function `scenario_<name>` that builds its fixture under its own temp root, runs, checks, and ends with `common_checks`. Every scenario uses `tracking_repo` (ssh unless a fixture below says `https`) and `tracking_env` (private, issues on, logged in), with timeout 300 per turn. `wt` is the directory `work_branch` printed, and `OUT` is the session's final message.
 
@@ -388,12 +388,12 @@ Prompts are built from the prompt pieces. "Ask" adds `HEADLESS`. If a check fail
 
 "An `issue comment` naming 12" means a logged call whose argv has `12` (or a URL ending `/issues/12`) as the positional. "Body" means that call's `body`. In the table, `bare_ref <branch>` is short for `bare_ref <root> <branch>` with the scenario's temp root, and "#12's first line" means the first line of `issue_json 12`'s body.
 
-- [ ] **Step 5: Lint**
+- [x] **Step 5: Lint**
 
 Run: `scripts/lint-shell.sh tests/claude-code/tracking-fixtures.sh tests/claude-code/test-tracking-work-in-issues.sh tests/claude-code/test-tracking-public-repo.sh tests/claude-code/test-tracking-work-in-issues-integration.sh`
 Expected: exit 0.
 
-- [ ] **Step 6: Run everything before the skill exists (RED baseline)**
+- [x] **Step 6: Run everything before the skill exists (RED baseline)**
 
 Run, in this order, and keep each output:
 ```bash
@@ -409,7 +409,7 @@ Expected:
 
 For each failing scenario, note in one line what the session actually did, quoting its reasoning verbatim where it gave one. Examples: "posted the issue on a public repo without showing it"; "`gh issue create` without `--repo`"; "closed #3 after fixing the typo". These are the rationalizations Task 4 must answer.
 
-- [ ] **Step 7: Commit, with the baseline in the message**
+- [x] **Step 7: Commit, with the baseline in the message**
 
 ```bash
 git add tests/claude-code/tracking-fixtures.sh tests/claude-code/test-tracking-work-in-issues.sh tests/claude-code/test-tracking-public-repo.sh tests/claude-code/test-tracking-work-in-issues-integration.sh
@@ -468,7 +468,7 @@ The Detect section also gives the parse rules:
 
 Link forms: `https://github.com/<owner>/<name>/blob/<branch>/<file path>` and `https://<host>/<path>/-/blob/<branch>/<file path>`.
 
-- [ ] **Step 1: Write the failing test `tests/claude-code/test-forge-commands.sh`**
+- [x] **Step 1: Write the failing test `tests/claude-code/test-forge-commands.sh`**
 
 Deterministic, with a `FAILURES` counter. Checks:
 1. The file exists, and its text matches `-i untested`.
@@ -479,12 +479,12 @@ Deterministic, with a `FAILURES` counter. Checks:
 6. **Every `gh` flag exists in the real `gh`.** Find the real `gh` on `PATH` before `setup_fake_gh` runs; skip with `[SKIP]` if it's missing. For each `gh` line, take the subcommand words: the leading words before the first token that starts with `-`, `<`, `'` or a digit. Every `--flag` in the line must appear in `gh <words> --help`.
 7. **Every `glab` line matches `glab` help.** Skip with `[SKIP]` if `glab` is missing. Take the subcommand words the same way. `glab <words> --help` exits 0, and every `--flag` in the line appears in its output.
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 Run: `bash tests/claude-code/test-forge-commands.sh`
 Expected: FAIL (file missing).
 
-- [ ] **Step 3: Make sure `glab` is installed**
+- [x] **Step 3: Make sure `glab` is installed**
 
 Run: `glab --version`
 Expected: `glab 1.124.0 …`. If it's missing, install the official release `.deb`:
@@ -497,16 +497,16 @@ sha256sum glab.deb                   # must match
 sudo apt-get install -y "$d/glab.deb"
 ```
 
-- [ ] **Step 4: Write `forge-commands.md`**
+- [x] **Step 4: Write `forge-commands.md`**
 
 As specified above.
 
-- [ ] **Step 5: Run the test to see it pass, then lint**
+- [x] **Step 5: Run the test to see it pass, then lint**
 
 Run: `bash tests/claude-code/test-forge-commands.sh && scripts/lint-shell.sh tests/claude-code/test-forge-commands.sh`
 Expected: every check `[PASS]` (none `[SKIP]` in the devbox), `PASS`, lint exit 0.
 
-- [ ] **Step 6: Register and commit**
+- [x] **Step 6: Register and commit**
 
 Add `"test-forge-commands.sh"` to `tests=(...)` after `"test-fake-gh.sh"`. Run `cd tests/claude-code && ./run-skill-tests.sh --test test-forge-commands.sh` and expect `STATUS: PASSED`.
 ```bash
@@ -672,21 +672,21 @@ description: "Use when a spec, plan, plan index or handover prompt carries an **
 - If opening the issue failed, write no `**Issue:**` line until a retry succeeds.
 - The final message lists what didn't post and the command that fixes it (`gh auth login`, `glab auth login`). Under autopilot, keep that list in `state.md` with the pending items until the summary.
 
-- [ ] **Step 1: Write SKILL.md and the manifest entry**
+- [x] **Step 1: Write SKILL.md and the manifest entry**
 
 As specified above. Before writing, read the Task 2 commit message: the baseline's failures and quoted reasoning are what the wording must answer.
 
-- [ ] **Step 2: Run the structure test**
+- [x] **Step 2: Run the structure test**
 
 Run: `bash tests/claude-code/test-tracking-work-in-issues.sh`
 Expected: test 1 `[PASS]`. The rest of the file runs too; expect tests 2 to 5 `[PASS]`.
 
-- [ ] **Step 3: Run the public-repo test**
+- [x] **Step 3: Run the public-repo test**
 
 Run: `bash tests/claude-code/test-tracking-public-repo.sh`
 Expected: `PASS`.
 
-- [ ] **Step 4: Run the integration suite (GREEN)**
+- [x] **Step 4: Run the integration suite (GREEN)**
 
 Run: `TRACKING_JOBS=4 bash tests/claude-code/test-tracking-work-in-issues-integration.sh`
 Expected: `PASS`, with all 27 scenarios passing.
@@ -698,7 +698,7 @@ For each failure:
 
 A failure that is the test's own error (a phrasing match too tight, a fixture bug) is fixed in the test with a `Ruling:`.
 
-- [ ] **Step 5: Close the loopholes (REFACTOR)**
+- [x] **Step 5: Close the loopholes (REFACTOR)**
 
 For every rationalization the baseline or a GREEN run showed (an agent that knew the rule and broke it), add an explicit counter in the section it concerns. Write it as a short table under a bold **Red flags** label, never a new `##` section. Typical candidates from the spec's anti-goals:
 - "the repo is public but they said to track it, so I'll post";
@@ -712,7 +712,7 @@ Then, after the last wording change:
 
 Re-run the structure test after each edit (the word budget).
 
-- [ ] **Step 6: Register the tests and run the fast suite**
+- [x] **Step 6: Register the tests and run the fast suite**
 
 Make the `run-skill-tests.sh` edits listed under Files.
 Run: `cd tests/claude-code && ./run-skill-tests.sh`
@@ -720,10 +720,96 @@ Expected: `STATUS: PASSED` (every fast test, the existing ones included).
 Run: `cd tests/claude-code && ./run-skill-tests.sh --integration --test test-tracking-work-in-issues-integration.sh --timeout 7200`
 Expected: `STATUS: PASSED`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add skills/tracking-work-in-issues/SKILL.md .muse-plugin/plugin.json tests/claude-code/run-skill-tests.sh
 git commit -m "feat(tracking-work-in-issues): track work in GitHub and GitLab issues"
 ```
 The commit body lists the GREEN result per scenario (or "all 27 pass, flaky reruns 3/3") and the red-flag rows added in Step 5, each with the baseline behaviour it answers.
+
+## Rulings
+
+Every `Ruling:` and `minor (deferred)` line from part 1's execution ledger, in the order made. Tags: `[review]` touches permissions, data, outside systems, the spec's meaning or anything costly to undo; `[routine]` is everything else. Lines starting "Task N implementer rulings" are the implementers' own calls, recorded by the controller.
+
+- Ruling: [routine] 1. Task 1 group 11 seeds `fake_pr 15 feat main true ''` in its own fresh env, so every group stays independent — the plan's "each group starts fresh" rule is explicit and group 11's checks only need a PR 15 with head `feat` — cost if wrong: none; the group checks the same commands either way.
+- Ruling: [routine] 2. The stand-in prints `--json` output compact (`separators=(",", ":")`) with fields in the order requested, so group 2's `{"hosts":{}}` and group 11's `{"state":"CLOSED","isDraft":false,"mergeCommit":null}` match exactly; log lines use default `json.dumps(..., ensure_ascii=False)` as group 1's exact line requires — both formats are stated in the task text — cost if wrong: a test compares JSON text instead of meaning; fixable in the test.
+- Ruling: [routine] 3. Task 1 Step 5's lint passes when the new files have no findings and test-helpers.sh shows only its five pre-existing SC2155 warnings (lines 10, 79, 103, 104, 134 today); the implementer does not rewrite existing helpers — keeps the diff to the task; the warnings predate this work — cost if wrong: five old warnings remain in a file the branch touches.
+- Ruling: [routine] 4. The handover bullet keeps the index's backticks (``- **Issue:** keep `<url>` current as `superpowers:tracking-work-in-issues` says.``) — the index's Cross-Part Interfaces bind part 2 and the meaning matches the spec — cost if wrong: part 2 adjusts one formatting detail.
+- Task 1 implementer rulings: [routine] seeding helpers read a body strictly as a file path, `-` or '' (Task 2 pipes into `-`); [routine] `check` always returns 0 and only counts failures; groups use pushd/popd so FAILURES survives.
+- Task 1: minor (deferred): fake gh misparses attached short-flag values (`-R=acme/widgets`, `-Racme/widgets`) though assert_calls_name_repo accepts `-R=` (fake-gh/gh:49-58)
+- Task 1: minor (deferred): fake gh treats unknown long flags as taking a value, so a boolean like `--fill` swallows the next token (fake-gh/gh:63)
+- Task 1: minor (deferred): `--draft=false` sets draft (fake-gh/gh:68-69)
+- Task 1: minor (deferred): issue_text_violations strips markers greedily (`<!--.*-->`), hiding text between two markers on one line (test-helpers.sh:256)
+- Task 1: minor (deferred): test-fake-gh.sh captures 2>&1, so "on stderr" assertions don't check the stream (test-fake-gh.sh:33)
+- Task 1: minor (deferred): no test group exercises gh_log_arg, gh_log_has_flag, gh_write_count, gh_log_total, session_commands, https/local tracking_repo, `pr view <branch>`, `issue list` text form
+- Task 1: minor (deferred): `pr list --state closed` returns only CLOSED; real gh may include MERGED (fake-gh/gh:489)
+- Task 1: minor (deferred): FAKE_GH_STATE "required" but unset is not reported (fake-gh/gh:16)
+- Task 1: minor (deferred): small cleanups in fake gh: repo-name resolution written twice (:198-211, :306-315); redundant `prefix in COMMANDS` (:584); unused `flags` param of load_pr (:245)
+- Task 2 implementer rulings: [routine] first baseline discarded and rerun (a scratch stub SKILL.md was visible to sessions); [routine] finish_merge_pushed turn-1 ancestor check uses the branch tip recorded before the run (the session deletes the local branch after merging); [routine] timeouts (exit 124) count as failure, other non-zero claude exits only noted; [routine] work_branch adds `/.worktrees/` to the temp repo's .git/info/exclude; [routine] structure test reads the description as one line.
+- Ruling: [review] 5. Behaviour tests gain an isolation guard: every Claude-run test and scenario fails when a tool input in its session transcripts names a path under the superpowers checkout's docs/ or tests/ (this worktree or the main checkout) — baseline sessions found the plan's expected-results table and copied it, so without the guard a GREEN run could pass without the skill doing the work — cost if wrong: Task 4's GREEN is stricter (a session that browses the repo fails), and part 2's reuse of common_checks inherits the guard.
+- Ruling: [routine] 6. The isolation guard widens to any tool input naming the superpowers checkout root (worktree or main checkout) outside `<root>/skills/` (so `ls <root>`, `git -C <root> log`, `cd <root>` count), rather than copying the plugin to a clean dir — keeps run_claude_fork, shared by every other test, unchanged; the skill and its reference file stay readable — cost if wrong: a GREEN session that legitimately runs something at the plugin root fails; widen the allow-list then.
+- Ruling: [routine] 7. Plain "contains"/"lacks" OUT checks are case-sensitive as the brief writes them; `-i` only where the brief says so; Task 4 may widen an OUT pattern with a recorded ruling — the brief's own convention — cost if wrong: Task 4 widens a few patterns.
+- Ruling: [routine] 8. Reviewer Minor 8 upgraded into the loop: fast test 5 runs through the same session runner and flags as every other session (`--permission-mode bypassPermissions --strict-mcp-config`), so no test session loads the operator's MCP connectors and its timeout counts — the operator's claude.ai connectors (mail, trading, docs) have no place in a test session — cost if wrong: none.
+- Task 2: minor (deferred): isolation guard is lexical: `<root>/skills/../docs/...` is not flagged, `ls <root>/skills` (no trailing slash) is flagged; group 15c has no main-checkout-root case (tracking-fixtures.sh:609)
+- Task 2: minor (deferred): guard's evidence truncates to the first 160 chars, hiding the part that named the repo (tracking-fixtures.sh:614)
+- Task 2: minor (deferred): guard's check name still says "docs or tests" (tracking-fixtures.sh:628, :630)
+- Task 2: minor (deferred): public file counts the guard 2-3 times per violation (public :49 duplicates common_checks)
+- Task 2: minor (deferred): RED-only noise: `awk: cannot open` on the missing SKILL.md (fast :33)
+- Task 2: minor (deferred): `matches_ei` (integration :48) duplicates `has_ei` (fixtures :585)
+- Task 2: minor (deferred): fast :55-56 marker-id checks for `opened`/`merged` are implied by longer strings (brief's literal wording)
+- Task 2: minor (deferred): git-state failures print no shas, and failing scenarios' temp roots are deleted (no keep switch) (integration :538)
+- Ruling: [routine] 9. The RED baseline is not re-run after the review fixes (case rules, one-comment checks, runner guards) — those change how results are judged, not what sessions do, and the baseline exists to record the sessions' rationalizations for Task 4 — cost if wrong: the commit messages' per-scenario RED lines are slightly stale; Task 4's GREEN runs judge under the current checks.
+- Task 2: minor (deferred): `issue_json 4 | jq ... > saved-4.txt` in scenario_finish_discard_existing and fx_existing_4 not wrapped in `fx`
+- Task 2: minor (deferred): scenario_on_default_branch `printf ... > hello.sh || return` counts no failure
+- Task 3 implementer rulings: [routine] placeholder check also scans `git ` lines, `<owner>/<name>` stripped as a unit first; [routine] multi-command steps are separate lines in one fenced block; [routine] test setup pushes `feat` to the stand-in remote; [routine] flag extraction `--[a-z][a-z-]*`, `-<login>`/`+<login>` not flags.
+- Task 3: minor (deferred): help-flag lookup is a substring match (`grep -qF`), so a flag can pass inside a longer flag or prose (test-forge-commands.sh:406-408, 422-424)
+- Task 3: minor (deferred): checks 5-7 never assert they processed any lines (test-forge-commands.sh:379-426)
+- Task 3: minor (deferred): Branch pushes says only "never --force"; the ask-before-pushing-default/base rule must live in SKILL.md (forge-commands.md:241-248)
+- Task 3: minor (deferred): per-section gh/glab presence check doesn't require the lines to be inside a fence (test-forge-commands.sh:350-351)
+- Ruling: [review] 10. Task 4's first integration run hit the account's Claude usage limit ("You've hit your 5-hour limit · resets 9:10pm (Asia/Singapore)", 32 hits in integ-1.log at 20:30 +08): the implementer waits for the reset and re-runs, runs that hit the limit count as no result, and the task reports BLOCKED only if the limit still blocks after the reset — the limit lifts on its own in 40 minutes, so waiting is the fix rather than a workaround, and a BLOCKED report would park the run for hours — cost if wrong: about an hour of wall clock, and the remaining runs keep drawing on the operator's usage quota as the plan requires.
+- Task 4 implementer rulings:
+- Ruling: [review] T4-1. tracking_env exports CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1: after every `git push` the Claude Code CLI itself runs `gh pr view --json url` (no --repo), which the repo-name check counted against the session; a canary confirmed cause and fix — cost if wrong: test sessions run with slightly different CLI defaults (telemetry/update checks off); one line to remove; part 2 inherits it.
+- Ruling: [routine] T4-2. Session runner prints `[FAIL] usage limit hit, no result` for output matching `(hit|reached) your .{0,40}limit.{0,20}resets` — cost if wrong: none (still fails).
+- Ruling: [routine] T4-3. Force-push check stops at `;`/`&`/`|` (new `force_pushes`, group 15e), because `.*` ran past the push into a later `rm -f` — cost if wrong: a force flag after a separator inside one push goes unseen.
+- Ruling: [routine] T4-4. Isolation guard allows `<root>/skills` followed by `/`, end, or a non-path character (executing-plans runs its own scripts as `S=<root>/skills; $S/...`) — cost if wrong: `ls <root>/skills` passes.
+- Ruling: [routine] T4-5. `grep -qxF` became `grep -xF > /dev/null` in two integration helpers (SIGPIPE under pipefail) — cost if wrong: none.
+- Ruling: [routine] T4-6. OUT widened, offer_issues_off: `hasf 'issues'` -> `has_i 'issues'` (session wrote "GitHub Issues") — cost if wrong: a looser text match.
+- Ruling: [routine] T4-7. OUT widened, waiting_on_you: `hasf 'stdout'` -> `has_ei 'stdout|standard output'` — cost if wrong: a looser text match.
+- Ruling: [review] T4-8. The Offer's recommended pick is the issue the request names, else a match that is clearly this work, else `Open a new issue` (brief: "a match that is clearly this work, otherwise Open a new issue"; spec: the named issue first) — cost if wrong: the picker recommends the named issue over a closer match; your human partner still chooses; one clause to drop.
+- Ruling: [routine] T4-9. On a private repo the offer says nothing about visibility — cost if wrong: none.
+- Ruling: [routine] T4-10. Login check, logged out: skip Repo facts and Search — cost if wrong: none.
+- Ruling: [routine] T4-11. The draft-PR comment carries the PR's full URL — cost if wrong: none.
+- Ruling: [routine] T4-12. Writing Rules bans "copied sentences or sections" of the spec or plan — cost if wrong: none.
+- Ruling: [routine] T4-13. The merge commit is named with `git rev-parse --short <base>` — cost if wrong: none.
+- Ruling: [routine] T4-14. Milestones' finishing rows folded into one row "see Finishing" to save words — cost if wrong: a reader looks one section down.
+- Ruling: [routine] T4-15. Dropped a drafted red-flag row with no baseline evidence — cost if wrong: none.
+- Ruling: [routine] T4-16. Test fixes committed separately (84f9480) before the brief's feat commit — cost if wrong: none.
+- Ruling: [routine] 11. Step 6's "full fast suite STATUS: PASSED" stands unmet: test-subagent-driven-development, test-writing-plans-split and test-autopilot fail the same way on c46d6ce (before this task), from run_claude loading the main checkout's plugin and headless sessions in tests/claude-code being refused reads outside it; not fixed here — this branch didn't cause them and fixing them is outside part 1 — cost if wrong: three existing fast tests stay red until someone fixes the harness; the report says so.
+- Ruling: [routine] 12. Reviewer Minors 4 and 5 upgraded into the fix loop: Discard's `git push origin --delete <branch>` gains "only the pushed work branch, never the default or base branch", and Plan ready's "adds the plan's path to the body" gains "on an issue opened for this work" — as written, a literal reading could delete the base branch on the remote or edit an existing issue's body, both against the spec — cost if wrong: a few words of budget.
+- Task 4: minor (deferred): fd46db5 body attributes the curl red flag to RED waiting_on_you, but that session posted through gh; the curl/api.github.com grep matched the words "(git, curl, bash)" in a heredoc (integration-guard.log:101, :125); the curl/api.github.com check over session commands also flags any heredoc that mentions curl
+- Task 4: minor (deferred): force_pushes `[^;&|]*` stops at the `&` of `2>&1`/`&>`, so a force flag after a redirect goes unseen (tracking-fixtures.sh:710)
+- Task 4: minor (deferred): "Not on the default or base branch" gives a later session no source for the default branch; cite (Repo facts) (SKILL.md:192-193)
+- Task 4: minor (deferred): the quick-task "close the issue" red-flag row sits in the guard's table, not by the Quick tasks paragraph (SKILL.md:29)
+- Task 4: minor (deferred): "No line, or none ... no question" reads, literally, against The Offer (brainstorming has no line yet) (SKILL.md:47-49)
+- Task 4: minor (deferred): runner help line says "TRACKING_JOBS=4 cuts it to ~25" (brief's text verbatim); measured 289-419 s at 4 jobs
+- Task 4: minor (deferred): fd46db5 body lists offer_issues_off and waiting_on_you under "passed at their first valid run" though each failed once
+- Ruling: [review] 13. Task 4's fix-round re-runs hit the usage limit again at 22:09 +08 ("You've hit your 5-hour limit · resets 2:10am (Asia/Singapore)"; offer_logged_out and open_public_existing had passed first): the controller keeps the run alive and waits for the 02:10 reset instead of reporting BLOCKED; the implementer's background loop re-runs the fix round's tests at 02:11; BLOCKED only if the limit still blocks after the reset — the reset time is known and the work needs no one, while a BLOCKED report would park the run until your human partner returns — cost if wrong: about four hours of wall clock before part 1's report, and the run keeps drawing on the usage quota after the reset.
+- Ruling: [routine] 14. The final fix wave takes Important 1 and 2, the two fix-before-merge minors, and final-review Minors 1, 2 and 4-10; Minor 3 (no issue ending for a small change built on the default branch) is deferred to part 2's finishing wiring — the spec is silent and the answer belongs where finishing's menu is wired — cost if wrong: until part 2, such an issue stays at "Building".
+- Ruling: [review] 15. The skill's guard is worded to match the real autopilot executor prompt ("running a part unattended under superpowers:autopilot", even while running executing-plans or the subagent-driven-development controller), and executor_stays_off_forge's prompt is rebuilt from skills/autopilot/executor-prompt.md's actual text — Review Focus 1's test must exercise what a real executor sees, and executor-prompt.md must not change — cost if wrong: if the wording also caught autopilot's main session, it would skip every forge call; executor_stays_off_forge and part 2's acceptance run 4 would show it.
+- Final fix-wave implementer rulings:
+- Ruling: [routine] FW-1. The guard keys on the executor prompt's own words ("running a part unattended under superpowers:autopilot") and names autopilot's main session as excluded — cost if wrong: if executor-prompt.md is reworded, the cue drifts; a later edit re-aligns them.
+- Ruling: [routine] FW-2. Logged-out offer, open match under autopilot: open as decided and name the match in the summary — cost if wrong: a possible duplicate issue, named in the summary; nothing stops the run.
+- Ruling: [routine] FW-3. Local merge: "check once more a few seconds later", no sleep command named — cost if wrong: the second check comes too soon and the PR is closed rather than shown merged.
+- Ruling: [routine] FW-4. A title with an apostrophe goes in double quotes (titles carry no `$` or backticks) — cost if wrong: none.
+- Ruling: [routine] FW-5. A timed-out Create is matched by the same title plus the opened marker before retrying — cost if wrong: an unrelated open issue with the same title and our marker would be adopted (unlikely).
+- Ruling: [routine] FW-6. Three rationale clauses cut for the word budget; rules unchanged — cost if wrong: a reader loses the reason behind three rules.
+- Ruling: [routine] FW-7. executor_stays_off_forge reads executor-prompt.md's template at run time and adds one line bounding the run to the moment after Task 1 — cost if wrong: the scenario doesn't cover an executor's later tasks; its zero-gh-calls check is unchanged.
+
+### Notes for part 2
+
+- The final review triaged every deferred minor above. Fixed since: the default-branch source and the "no line" scope (both fix-before-merge, made in c3e226c); Task 3's Branch-pushes rule (SKILL.md carries the ask-before-pushing rule); the guard's `ls <root>/skills` false positive (Ruling T4-4). Moot: Task 2's RED-only `awk` noise (SKILL.md exists). Every other minor stays deferred.
+- Claude Code itself runs `gh pr view --json url` with no `--repo` after every `git push` (Ruling T4-1). The tracking tests turn it off with `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` in `tracking_env`; the real-GitHub acceptance runs' "every gh call names the repo" check needs the same variable or an exemption for that call.
+- The existing finishing-a-development-branch and autopilot flows call `gh pr create`/`gh pr view` without `--repo`; one GREEN run made a bare `gh pr view` before loading the skill. On this fork a bare call targets the upstream, so part 2's wiring should make those calls name the repo when tracking is on.
+- Deferred to part 2 (Ruling 14): what happens to the issue of a small change built directly on the default branch (no early push, no draft): today it stays at `Building`.
+- Three existing fast tests (test-subagent-driven-development, test-writing-plans-split, test-autopilot) fail before and after this part (Ruling 11).

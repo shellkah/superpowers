@@ -69,6 +69,7 @@ declare -A EXPECT=(
     [executing-plans]='The Draft PR|Milestones'
     [subagent-driven-development]='The Draft PR|Milestones'
     [finishing-a-development-branch]='The Draft PR|Finishing'
+    [autopilot]='Opening the Issue|The Draft PR|Milestones|Finishing|Failures'
 )
 # Each section a file cites as "tracking-work-in-issues says (<S>[, <S>])", one per line;
 # lines are joined first, since the skills are hard-wrapped.
@@ -115,6 +116,27 @@ for line in '1. Merge back to <base-branch> locally' '2. Push and create a Pull 
     check "finishing's menu keeps: $line" grep -qxF -- "$line" "$F"
 done
 check "finishing names the draft option" grep -qF 'Mark the draft PR ready for review' "$F"
+echo ""
+
+echo "Test 7: Autopilot's pushes and the issue (comprehension)..."
+mkdir -p "$TEST_ROOT/t7"
+run_moment "$TEST_ROOT/t7" "$T" "Read the superpowers:autopilot skill. A run tracks a GitHub issue, and its plan is split into 2 parts. Answer using exactly this structure:
+Executors push or post: <yes, no, or not stated>
+Main session pushes between parts: <yes, no, or not stated>
+Draft PR opened after: <when, or not stated>
+A between-part push is a blocker: <yes, no, or not stated>
+Opening the issue when the spec is committed is a blocker: <yes, no, or not stated>
+With a draft open, step 5 creates a new PR: <yes, no, or not stated>
+Summary gives the issue link: <yes, no, or not stated>
+$NS"
+check "executors never push or post" has_ei "$OUT" 'Executors push or post:[^a-z]*no\b'
+check "the main session pushes between parts" has_ei "$OUT" 'pushes between parts:[^a-z]*yes\b'
+check "the draft opens after part 1" has_ei "$OUT" 'Draft PR opened after:.*part 1'
+check "a between-part push is no blocker" has_ei "$OUT" 'between-part push is a blocker:[^a-z]*no\b'
+check "opening the issue is no blocker" has_ei "$OUT" 'spec is committed is a blocker:[^a-z]*no\b'
+check "step 5 marks the draft ready instead" has_ei "$OUT" 'step 5 creates a new PR:[^a-z]*no\b'
+check "the summary gives the issue link" has_ei "$OUT" 'Summary gives the issue link:[^a-z]*yes\b'
+check_isolation "$TEST_ROOT/t7"
 echo ""
 
 if [[ $FAILURES -eq 0 ]]; then

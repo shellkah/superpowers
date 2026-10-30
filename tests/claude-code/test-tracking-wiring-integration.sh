@@ -16,7 +16,7 @@ root="" work="" wt="" # set by the fixtures (fxv)
 TURN="${CLAUDE_PROMPT_TIMEOUT:-300}"
 LONG="${CLAUDE_LONG_TIMEOUT:-900}"
 
-ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved plan_tracked plan_untracked exec_task1_opens_draft exec_untracked exec_stop_posts_waiting exec_part_done exec_draft_fails sdd_task1_opens_draft sdd_executor_stays_off_forge finish_menu_ready_dev finish_menu_untracked finish_menu_draft_closed finish_option1_pushed finish_option3_paused finish_discard_confirmed finish_on_default_branch" # each task appends its scenarios, in task order
+ALL_SCENARIOS="brainstorm_offer brainstorm_no_forge brainstorm_small_change_approved brainstorm_public_small_change brainstorm_project_approved plan_tracked plan_untracked exec_task1_opens_draft exec_untracked exec_stop_posts_waiting exec_part_done exec_draft_fails sdd_task1_opens_draft sdd_executor_stays_off_forge finish_menu_ready_dev finish_menu_untracked finish_menu_draft_closed finish_option1_pushed finish_option3_paused finish_discard_confirmed finish_on_default_branch autopilot_spec_commit autopilot_after_part1 autopilot_blocker autopilot_step5_ready autopilot_one_part_pr" # each task appends its scenarios, in task order
 
 # ---- prompt pieces ----
 
@@ -440,6 +440,251 @@ scenario_finish_on_default_branch() { # a small change built straight on main: n
     check "no pr close" num_is "$(gh_log_count pr close)" 0
     check "#12 status line is Merged in" starts "$(i_first 12)" '**Status:** Merged in'
     common_checks "$work"
+}
+
+# ---- autopilot ----
+AP_OPEN='You are the main session of a superpowers:autopilot run that is already driving: load the superpowers:autopilot skill to follow its steps (this is not a new run).'
+
+# draft_spec <work>: the spec with its run notes, not committed.
+draft_spec() {
+    _write_spec "$1" || return 1
+    {
+        echo
+        echo '## Run notes'
+        echo
+        echo '- **Services:** none; the work needs none.'
+        echo '- **Checkpoints:** no.'
+        echo '- **PRs:** one, from `version-flag` against `main`.'
+    } >> "$1/$SPEC_PATH"
+}
+
+# autopilot_run_dir <work> <parts> <current> [<finished>]: the run folder; prints it.
+autopilot_run_dir() {
+    local work="$1" parts="$2" current="$3" finished="${4:-none}" run
+    run="$work/.superpowers/autopilot/version-flag"
+    mkdir -p "$run" || return 1
+    echo '*' > "$work/.superpowers/autopilot/.gitignore"
+    {
+        echo "# Autopilot run — spec: $work/$SPEC_PATH"
+        echo
+        echo '- Started on branch: `main` (the PR targets it)'
+        echo "- Spec: $work/$SPEC_PATH"
+        if [[ "$parts" = 1 ]]; then echo "- Plan: $work/$PLAN_PATH"; else echo "- Index: $work/$INDEX_PATH"; fi
+        echo "- Builds: 1. Parts: $parts."
+        echo
+        echo '## Current'
+        echo
+        echo "$current"
+        echo
+        echo '## Finished parts'
+        echo
+        echo "$finished"
+        echo
+        echo '## Pending'
+        echo
+        echo 'none'
+        echo
+        echo '## Run notes'
+        echo
+        echo '- **Services:** none; the work needs none.'
+        echo '- **Checkpoints:** no.'
+        echo '- **PRs:** one, from `version-flag` against `main`.'
+    } > "$run/state.md"
+    {
+        echo '# Main session record'
+        echo
+        echo '- Ruling: [routine] Services question skipped: the work needs none. Cost if wrong: none.'
+    } > "$run/main-record.md"
+    echo "$run"
+}
+
+# part_record <run> <N>
+part_record() {
+    {
+        echo "# Part $2 record"
+        echo
+        echo '- Ruling: [routine] Kept the greeting text as it is — the spec does not mention it — cost if wrong: none.'
+        echo
+        echo '## Interfaces produced:'
+        echo
+        echo '- none'
+    } > "$1/part-$2-record.md"
+}
+
+# executor_report <DONE|BLOCKED> <wt> <run> <N> <last|not-last> [<blocker>]
+executor_report() {
+    local status="$1" wt="$2" run="$3" n="$4" pos="$5" blocker="${6:-}" built review accept
+    if [[ "$n" = 1 ]]; then built='the VERSION file and ./hello.sh --version'; else built='./hello.sh --help'; fi
+    if [[ "$status" = DONE ]]; then review=clean; else review='not run'; fi
+    if [[ "$pos" = last ]]; then accept='steps for a person: run ./hello.sh --version and see 1.0.0.'; else accept='n/a'; fi
+    echo "Status: $status"
+    echo 'Branch: version-flag'
+    echo "Worktree: $wt"
+    echo "Last commit: $(git -C "$wt" rev-parse --short HEAD)"
+    echo "Ledger: $wt/.superpowers/sdd/version-flag/progress.md"
+    echo "Record: $run/part-$n-record.md"
+    [[ -z "$blocker" ]] || echo "Blocker: $blocker"
+    echo "Built: $built"
+    echo 'Tests: bash test.sh → PASS'
+    echo "Final review: $review"
+    echo "Acceptance: $accept"
+    echo 'Rulings I made:'
+    echo '- none'
+    echo 'Routine rulings: 1'
+    echo 'Deferred minors: 0'
+}
+
+# help_commit <dir>: ./hello.sh --help, committed.
+help_commit() {
+    printf '%s\n' '#!/bin/sh' \
+        'if [ "$1" = "--version" ]; then cat "$(dirname "$0")/VERSION"; exit 0; fi' \
+        'if [ "$1" = "--help" ]; then echo "usage: hello.sh [--version | --help | <name>]"; exit 0; fi' \
+        'echo "Hello, ${1:-world}!"' > "$1/hello.sh" || return 1
+    git -C "$1" commit -q -am 'Add --help text' && (cd "$1" && bash test.sh > /dev/null)
+}
+
+run_folder_has_state() { compgen -G "$work/.superpowers/autopilot/*/state.md" > /dev/null; }
+# spec_committed alone passes for a spec that was never committed (git diff ignores untracked files)
+spec_in_head() { git -C "$work" cat-file -e "HEAD:$SPEC_PATH"; }
+ISSUE12_URL=https://github.com/acme/widgets/issues/12
+
+scenario_autopilot_spec_commit() {
+    setup || return
+    fx draft_spec "$work" || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$TURN" "$AP_OPEN You are in step 2 for the request \"Add a --version flag to hello.sh\": you wrote the spec at $SPEC_PATH with its run notes, and it is not committed yet. The builder check came back with no questions for your human partner. In brainstorming's last round of questions, when you offered to track the work in an issue, they chose \"Open a new issue\". Carry on with step 2 as autopilot says, then stop before step 3."
+    local body
+    body="$(posted_body)"
+    check "loaded autopilot" loaded "$work" autopilot
+    check "one issue created" num_is "$(gh_log_count issue create)" 1
+    check "assigned to @me" gh_log_has_flag issue create '--assignee|-a' '@me'
+    check "body starts with the Planning status" test "$(first_line "$body")" = '**Status:** Planning'
+    check "body ends with the opened marker" test "$(last_nonempty "$body")" = "$OPENED_MARKER"
+    check "body names the spec path" hasf "$body" "$SPEC_PATH"
+    check "spec carries the issue line" spec_line_is '**Issue:** https://github.com/acme/widgets/issues/1 (opened for this work)'
+    check "the spec is in HEAD" spec_in_head
+    check "spec change is committed" spec_committed
+    check "the run folder has a state.md" run_folder_has_state
+    check "no pr create" num_is "$(gh_log_count pr create)" 0
+    check "main on the remote is unchanged" main_unchanged
+    common_checks "$work"
+}
+
+scenario_autopilot_after_part1() {
+    setup || return
+    fx split_plan_docs "$work" "$ISSUE12" || return
+    fx opened_issue_12 Building || return
+    fxv wt work_branch "$work" main worktree || return
+    fx task2_commit "$wt" || return
+    local run
+    fxv run autopilot_run_dir "$work" 2 "Step 4, part 1 of 2, sub-step 6: part 1's executor reported." || return
+    fx part_record "$run" 1 || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$TURN" "$AP_OPEN The run folder is $run: read its state.md. In step 4, part 1's executor has just reported:
+
+$(executor_report DONE "$wt" "$run" 1 not-last)
+
+Carry on as autopilot says, and stop just before you would dispatch part 2's writer."
+    check "loaded autopilot" loaded "$work" autopilot
+    check "version-flag is on the remote at the worktree's HEAD" same_ref "$(bare_ref "$root" version-flag)" "$(git -C "$wt" rev-parse HEAD)"
+    check "one pr create" num_is "$(gh_log_count pr create)" 1
+    check "the PR is a draft" gh_log_has_flag pr create '--draft|-d'
+    check "base is main" gh_log_has_flag pr create '--base|-B' main
+    check "head is version-flag" gh_log_has_flag pr create '--head|-H' version-flag
+    check "PR body closes #12" hasf "$(gh_log_body pr create)" 'Closes #12'
+    check "a comment on #12 ends with the draft-pr marker" named_ends_with issue comment 12 '<!-- superpowers:draft-pr -->'
+    check "a comment on #12 ends with the part-1-done marker" named_ends_with issue comment 12 '<!-- superpowers:part-1-done -->'
+    check "#12 status line is the draft PR" test "$(i_first 12)" = '**Status:** Building: draft PR #13'
+    check "no pr ready" num_is "$(gh_log_count pr ready)" 0
+    check "main on the remote is unchanged" main_unchanged
+    common_checks "$work"
+}
+
+scenario_autopilot_blocker() {
+    setup || return
+    fx split_plan_docs "$work" "$ISSUE12" || return
+    fx opened_issue_12 Building || return
+    fxv wt work_branch "$work" main worktree || return
+    local run
+    fxv run autopilot_run_dir "$work" 2 "Step 4, part 1 of 2, sub-step 5: part 1's executor is running." || return
+    fx part_record "$run" 1 || return
+    run_moment "$work" "$TURN" "$AP_OPEN The run folder is $run: read its state.md. In step 4, part 1's executor has just reported:
+
+$(executor_report BLOCKED "$wt" "$run" 1 not-last 'Task 2: the spec does not say whether --version prints to stdout or stderr, and the choice changes what users see. Only your human partner can decide.')
+
+Carry on as autopilot says. $HEADLESS"
+    check "loaded autopilot" loaded "$work" autopilot
+    check "one comment on #12" num_is "$(named_count issue comment 12)" 1
+    check "it ends with a waiting marker" grep -qE '^<!-- superpowers:waiting-[0-9]{12} -->$' <<< "$(named_last_lines issue comment 12)"
+    check "#12 status line is waiting" test "$(i_first 12)" = '**Status:** Waiting on a decision'
+    check "asks about stdout" has_ei "$OUT" 'stdout|standard output'
+    check "version-flag is not on the remote" test -z "$(bare_ref "$root" version-flag)"
+    check "no pr create" num_is "$(gh_log_count pr create)" 0
+    common_checks "$work"
+}
+
+scenario_autopilot_step5_ready() {
+    setup || return
+    fx split_plan_docs "$work" "$ISSUE12" || return
+    fx opened_issue_12 Building || return
+    fxv wt work_branch "$work" main worktree || return
+    fx push_work "$wt" || return
+    fx draft_pr_13 main || return
+    fx task2_commit "$wt" || return
+    fx push_work "$wt" || return
+    fx help_commit "$wt" || return
+    local run
+    fxv run autopilot_run_dir "$work" 2 "Step 4, part 2 of 2, sub-step 6: part 2's executor reported." "- Part 1: DONE. Branch version-flag, worktree $wt. Record part-1-record.md." || return
+    fx part_record "$run" 1 || return
+    fx part_record "$run" 2 || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$LONG" "$AP_OPEN The run folder is $run: read its state.md. Part 2, the last part, has just reported:
+
+$(executor_report DONE "$wt" "$run" 2 last)
+
+Carry on with steps 5 and 6 as autopilot says."
+    check "loaded autopilot" loaded "$work" autopilot
+    check "version-flag is on the remote at the worktree's HEAD" same_ref "$(bare_ref "$root" version-flag)" "$(git -C "$wt" rev-parse HEAD)"
+    check "no pr create" num_is "$(gh_log_count pr create)" 0
+    check "a pr edit on #13 whose body closes #12" named_body_has pr edit 13 'Closes #12'
+    check "that body carries the records in <details>" named_body_has pr edit 13 '<details>'
+    check "one pr ready" num_is "$(gh_log_count pr ready)" 1
+    check "PR #13 is no longer a draft" pr_is_draft_false
+    check "a comment on #12 ends with the pr-ready marker" named_ends_with issue comment 12 '<!-- superpowers:pr-ready -->'
+    check "#12 status line is ready for review" test "$(i_first 12)" = '**Status:** Ready for review: PR #13'
+    check "the summary gives the issue link" hasf "$OUT" "$ISSUE12_URL"
+    check "the summary gives the PR link" hasf "$OUT" "$PR13"
+    check "main on the remote is unchanged" main_unchanged
+    common_checks "$work"
+}
+
+scenario_autopilot_one_part_pr() { # no draft: the PR opens at step 5, already ready
+    setup || return
+    fx version_flag_docs "$work" "$ISSUE12" || return
+    fx opened_issue_12 Building || return
+    fxv wt work_branch "$work" main worktree || return
+    fx task2_commit "$wt" || return
+    local run
+    fxv run autopilot_run_dir "$work" 1 "Step 4, part 1 of 1, sub-step 6: the executor reported." || return
+    fx part_record "$run" 1 || return
+    main_before="$(bare_ref "$root" main)"
+    run_moment "$work" "$LONG" "$AP_OPEN The run folder is $run: read its state.md. The plan has one part, and its executor has just reported:
+
+$(executor_report DONE "$wt" "$run" 1 last)
+
+Carry on with steps 5 and 6 as autopilot says."
+    check "loaded autopilot" loaded "$work" autopilot
+    check "version-flag is on the remote at the worktree's HEAD" same_ref "$(bare_ref "$root" version-flag)" "$(git -C "$wt" rev-parse HEAD)"
+    check "one pr create" num_is "$(gh_log_count pr create)" 1
+    check "it is not a draft" not gh_log_has_flag pr create '--draft|-d'
+    check "its base is main" gh_log_has_flag pr create '--base|-B' main
+    check "its body closes #12" hasf "$(gh_log_body pr create)" 'Closes #12'
+    check "a comment on #12 ends with the pr-ready marker" named_ends_with issue comment 12 '<!-- superpowers:pr-ready -->'
+    check "#12 status line is ready for review" test "$(i_first 12)" = '**Status:** Ready for review: PR #13'
+    check "the summary gives the issue link" hasf "$OUT" "$ISSUE12_URL"
+    check "the summary gives the PR link" hasf "$OUT" "$PR13"
+    check "main on the remote is unchanged" main_unchanged
+    common_checks "$work" full-pr
 }
 
 run_scenarios 'workflow skills reach the tracking skill' "$ALL_SCENARIOS"

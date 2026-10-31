@@ -83,7 +83,9 @@ the run is and what is pending. Continue from there.
    - **A quick, clear task:** do it.
    - **A small change:** describe it in chat in one message that ends
      without a question, then build it through the normal workflow without
-     waiting for an answer.
+     waiting for an answer. If it tracks an issue, open it as that message
+     goes out, as superpowers:tracking-work-in-issues says (Opening the
+     Issue).
    - **A project:** continue to step 2.
 
    Build a quick task or a small change on a new branch cut from the
@@ -107,6 +109,9 @@ the run is and what is pending. Continue from there.
      after the first PR, with the next build's index written.
 
    Put their answers in a `## Run notes` section at the end of the spec.
+   If this work tracks an issue, open it as you commit the spec, as
+   superpowers:tracking-work-in-issues says (Opening the Issue): its
+   `**Issue:**` line goes in that commit.
    Commit the spec, then create the run folder, write `state.md`, and put
    your calls in `main-record.md`. Do not stop for a review: the request
    for a fully automated run is their approval of the spec.
@@ -186,6 +191,13 @@ the run is and what is pending. Continue from there.
    checkpoint mode (run notes), stop after the status line instead and
    wait for "continue".
 
+   If this work tracks an issue (the spec's `**Issue:**` line says; `grep`
+   for that line, do not read the spec), after each part's DONE report
+   push its branch, open the draft PR after part 1, and post the
+   part-done milestone for every part but the last, as
+   superpowers:tracking-work-in-issues says (The Draft PR, Milestones).
+   These pushes and posts are yours: an executor never makes them.
+
    Work you do yourself between parts lives in `[RUN_DIR]` (or a worktree
    of your own), never only in a temporary directory. Copy anything meant
    for the branch into the worktree and commit it only while no executor
@@ -213,7 +225,10 @@ the run is and what is pending. Continue from there.
      part records on the shell, inside a collapsed `<details>` section,
      into a body file (`cat` them after the summary), and pass it with
      `gh pr create --body-file` or your host's equivalent. Do not read the
-     records to build it.
+     records to build it. If this work tracks an issue, do this as
+     superpowers:tracking-work-in-issues says (Finishing): an open draft PR
+     gets the body file as its description and is marked ready instead of a
+     new PR, and the body keeps `Closes #N` (or `Part of #N`).
    - **No remote, or no working CLI:** take "Keep the branch as-is" and say
      why there is no PR. This is not a blocker.
 
@@ -227,7 +242,9 @@ the run is and what is pending. Continue from there.
      if wrong,
    - **Not yet seen by you:** anything published during the run that they
      have not looked at, with its link,
-   - the PR link, or why there is none,
+   - the PR link, or why there is none, with the issue link beside it when
+     the run tracks one, and what the tracking could not post, as
+     superpowers:tracking-work-in-issues says (Failures),
    - what was built, part by part,
    - tests and final-review outcomes for each part, and any checker
      `Length` note,
@@ -267,15 +284,24 @@ integration tests need a Stripe test key and none is set. Can you add one
 to `.env`, or should I mock the API?"). Steps for them to follow are not a
 question. Send the question through the push channel too, where there is
 one: it is the message most worth reaching them away from the terminal.
-Wait for the answer, then continue from where it stopped. A blocker is:
+Wait for the answer, then continue from where it stopped.
+
+If this work tracks an issue (for a project, the spec's `**Issue:**` line
+says; `grep` for that line, do not read the spec), post the waiting-on-you
+milestone before you ask, and put the status back when the run resumes, as
+superpowers:tracking-work-in-issues says (Milestones).
+
+A blocker is:
 
 - a builder-check question only they can answer,
 - a part writer's open question only they can answer,
 - any of the executor skills' four stop conditions: an irreversible or
   destructive operation, a security-sensitive action, an outside side
   effect such as a push, a publish or a deploy, or a plan so broken that
-  every path is a guess. The one exception is step 5's feature-branch push
-  and PR: they pre-authorized it by asking for autopilot. Asking for any
+  every path is a guess. The exceptions are step 5's feature-branch push
+  and PR and, when the run tracks an issue, step 4's pushes of that
+  branch and its draft PR: your human partner pre-authorized them by
+  asking for autopilot and saying yes to the issue. Asking for any
   other side effect in the request ("then deploy it") does not
   pre-authorize it: stop right before it and ask,
 - an environment problem you cannot fix: missing credentials, a login, a
@@ -313,7 +339,8 @@ fresh one as Resuming After a Blocker says.
 With no subagent tool, write each part yourself, as writing-plans says, and
 run each part's handover prompt in this session with
 superpowers:executing-plans, part by part. The executor prompt's limits
-still hold: no finishing-a-development-branch and no push until step 5.
+still hold: no finishing-a-development-branch, and no push until step 5
+beyond step 4's between-part pushes when the run tracks an issue.
 Step 4's rule against reading part files, the spec and code does not
 apply here: you are the writer and the executor. Run writing-plans'
 cross-part check yourself after each part is written, as its normal mode
@@ -336,5 +363,5 @@ executing-plans deletes the plan's workspace, so steps 5 and 6 find it.
 | "They asked me to run the deploy, and with no key it will just fail." | Running it is the side effect, even a run you expect to fail. Stop before it and ask. |
 | "I'll list the blocker under Parked and wrap up the run." | A blocker isn't parked work. Stop at it and end your message with the question. |
 | "The push was rejected, I'll force it." | Never force. A rejected push is a blocker. |
-| "The executor can push its own part." | Executors never push. Autopilot pushes once, at the end. |
+| "The executor can push its own part." | Executors never push. Autopilot pushes at the end, and between parts when the run tracks an issue. |
 | "The executor will take a while, so I'll background it and check its output now and then." | Never poll and never guess. Dispatch in the foreground and wait; if the harness only runs it in the background, end your turn and resume on its notification. |

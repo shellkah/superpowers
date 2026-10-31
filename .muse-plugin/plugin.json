@@ -51,6 +51,10 @@
         "path": "skills/test-driven-development/SKILL.md"
       },
       {
+        "id": "tracking-work-in-issues",
+        "path": "skills/tracking-work-in-issues/SKILL.md"
+      },
+      {
         "id": "using-git-worktrees",
         "path": "skills/using-git-worktrees/SKILL.md"
       },

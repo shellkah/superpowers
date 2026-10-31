@@ -359,6 +359,7 @@ Superpowers is built by [Jesse Vincent](https://blog.fsck.com) and the rest of t
 - **receiving-code-review** - Responding to feedback
 - **using-git-worktrees** - Parallel development branches
 - **finishing-a-development-branch** - Merge/PR decision workflow
+- **tracking-work-in-issues** - One GitHub or GitLab issue per piece of work: offered while brainstorming, linked to a draft PR, kept current at each milestone, closed when the work lands
 - **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
 
 **Meta**

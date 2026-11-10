@@ -1,0 +1,8 @@
+#!/bin/sh
+# core.sshCommand stand-in: fake-ssh <bare-repo> <host> <command>
+bare=$1; shift 2
+case "$1" in
+  git-upload-pack*) exec git-upload-pack "$bare" ;;
+  git-receive-pack*) exec git-receive-pack "$bare" ;;
+  *) echo "fake-ssh: unsupported: $1" >&2; exit 1 ;;
+esac

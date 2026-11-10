@@ -41,6 +41,8 @@ operation; a security-sensitive action; a side effect outside this worktree
 that norms say you ask about first (a merge, a push to a shared branch, a
 publish); and a plan so broken that every path forward is a guess. For
 those, stop and ask.
+If this work tracks an issue, post the waiting-on-you milestone as you
+stop, as superpowers:tracking-work-in-issues says (Milestones).
 
 ## When to Use
 
@@ -231,6 +233,13 @@ if they pass — appends the completion line to the ledger:
 A failing run records nothing; the task is not complete. When it records,
 mark the todo complete and take the next task.
 
+If this work tracks an issue, push after each completed task as
+superpowers:tracking-work-in-issues says (The Draft PR); after Task 1,
+that also opens the draft PR. That push and that PR are the tracking
+your human partner chose, not one of the four stops. Under autopilot an
+executor makes none of these pushes or posts: autopilot's main session
+does.
+
 ## Final Review
 
 Run `../subagent-driven-development/scripts/review-package PLAN_FILE MERGE_BASE HEAD`
@@ -304,6 +313,10 @@ behalf — and the findings you chose not to act on — reach them.
 When the final review is clean and its fixes are committed, delete this
 plan's workspace directory — the git history is the record now. Sibling
 directories belong to other plans; leave them alone.
+
+If this work tracks an issue and this part is not the plan's last (its
+header says Part N of M, N below M), post the part-done milestone as
+superpowers:tracking-work-in-issues says (Milestones) before you stop.
 
 Use superpowers:finishing-a-development-branch.
 

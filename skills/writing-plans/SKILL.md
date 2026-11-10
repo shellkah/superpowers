@@ -58,6 +58,9 @@ with exactly these sections:
 ## Global Constraints
 <from the spec, one line each, shared by all parts>
 
+## Acceptance
+<the spec's check from outside, as the spec gives it; the last part's last task runs it>
+
 ## Parts
 
 | Part | Name | Deliverable | Tasks (rough) | Depends on |
@@ -209,8 +212,25 @@ break the program. Write the list here, once, with the spec in front of
 you. Then, for each line, add the test that pins it to the task that
 owns the code, in that task's own step style.]
 
+## Acceptance
+
+[The spec's check from outside ("how you'll know it's right"): the exact
+command, input or steps, and what passing looks like. The plan's last
+task runs it. If it needs a person (someone trying it), the last task
+readies it instead: what to launch and what to try, and the executor
+hands those steps to your human partner in its final message. In a split
+plan only the last part carries it; earlier parts write "In part M". A
+spec with no such check gets "None in the spec", and the closing
+message's Where to focus says so.]
+
 ---
 ```
+
+**Issue line.** When the spec carries an `**Issue:**` line under its
+title (superpowers:tracking-work-in-issues), copy it unchanged into the
+plan, one blank line under the title. A split plan's index carries it
+the same way, and each part file carries it one blank line under its
+Part line.
 
 ## Task Structure
 
@@ -297,6 +317,8 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 **5. Proportion:** Compare the plan's length to the spec's. A plan several times longer than the spec it implements is a transcript of the program, not a plan. If code blocks are most of the document, replace bodies with signatures, test names and assertions, and check that each step is still unambiguous.
 
+**6. Acceptance:** Does the last task run the Acceptance check, or ready it for a person? If not, add that to the last task, in its step style.
+
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Execution Handoff
@@ -361,16 +383,24 @@ Then the bullets:
 - **Branch:** work on branch `<branch from the index>`.
 - **Workspace:** set up the workspace as the skill says.
 - **Previous part:** continue on that branch in the worktree part N-1 used. First check that part N-1 is complete: every task in its plan file is checked off (its executor ticks them only after its final review passes). If it is not, stop and say so.
-- **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes.
+- **Not the last part:** when the final review passes, report and stop without running `superpowers:finishing-a-development-branch`; the next part continues on this branch. Before you stop, check off every task of this part in its plan file: the next part's completeness check reads those checkboxes. Before the plan's workspace is deleted, add a `## Rulings` section at the end of that file with every `Ruling:` and `minor (deferred)` line from the ledger: the next part's writer plans against them.
+- **Issue:** keep `<url>` current as `superpowers:tracking-work-in-issues` says.
 ```
 
 - **Branch:** split plans only.
 - **Workspace:** part 1 only.
 - **Previous part:** every part after part 1.
 - **Not the last part:** every part except the last.
+- **Issue:** every part, when the spec's `**Issue:**` line has a link (not `none`); `<url>` is that link.
 
 Under autopilot every part is written before its prompt, so every prompt
 opens with "Execute".
+
+**Plan ready.** If the plan tracks an issue, post the plan-ready
+milestone as superpowers:tracking-work-in-issues says (Milestones): in
+normal mode once the plan, or the index and part 1, are written, before
+the closing message; under autopilot just before you return control,
+once the plan or the index is written.
 
 **4. End the session with one message** (skip this under autopilot, see
 below): the plan link, a **Where to focus** list, and the part 1 handover
@@ -398,6 +428,6 @@ there is one part. Then wait for your human partner
 to review the plan. Do not start executing it.
 
 **Under autopilot** (superpowers:autopilot is driving), skip the message and
-return control to autopilot. With a split, stop after the index; autopilot
+return control to autopilot, after Plan ready above. With a split, stop after the index; autopilot
 dispatches each part's writer, and the writer appends the part's handover
 prompt to the handover file as it goes.

@@ -18,8 +18,10 @@ Your inputs:
 - Spec: [SPEC_PATH]
 - Plan index: [INDEX_PATH]
 - Your part: part [PART_NUMBER] of [PART_COUNT]
-- Earlier parts: [EARLIER_PART_PATHS]. Read only their Interfaces blocks,
-  not their whole content.
+- Earlier parts: [EARLIER_PART_PATHS]. Read only their Interfaces blocks
+  and `## Rulings` sections, not their whole content. A ruling there
+  settles what the spec means for your part too; if one seems to
+  contradict the spec, report it as an open question.
 - Code from earlier parts: [WORKTREE_PATH] (`none` when no earlier part
   has run)
 - Write your part to: [OUTPUT_PATH]

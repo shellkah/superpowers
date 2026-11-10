@@ -120,6 +120,7 @@ Resume at: <the next task; PAUSED only>
 Built: <what this part built>
 Tests: <command and result>
 Final review: <outcome>
+Acceptance: <the plan's Acceptance check and its result, or the steps for a person to try; `n/a` before the last part or when the plan has none>
 Rulings I made:
 - <every [review] ruling from the ledger, with what it costs if wrong>
 Routine rulings: <count; they are in the record>

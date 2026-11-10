@@ -106,7 +106,9 @@ guessing this is because X keeps biting you?") often beats a question.
 
 **Look around.** Reading the project is read-only: its code, its docs,
 its history, and their files in the working directory. Do it whenever it
-helps, without asking. You may read before or during the opening so your
+helps, without asking. Go to the raw material over anyone's summary of
+it: the real data, the actual error, the file or screen they're
+describing. You may read before or during the opening so your
 questions are better informed, but say what you looked at and what you
 found only after they've described the idea. Web searches and anything
 outside the project still ask first: say what you'd look for, and wait
@@ -174,20 +176,56 @@ words. They can override it.
 | A small change | in chat | build it through the normal workflow |
 | A project with a written design | a written design document | a full plan (for software: superpowers:writing-plans) |
 
+**The normal workflow for a small change** in software: work on a
+branch, never on main or master unless they say so. Test first
+(superpowers:test-driven-development), run the check its description
+names, then superpowers:requesting-code-review and
+superpowers:finishing-a-development-branch. If it tracks an issue, open
+the issue when they approve the description, as
+superpowers:tracking-work-in-issues says (Opening the Issue); that skill
+then covers the issue through to finishing, starting with a draft PR
+after your first commit.
+
+**Issue tracking.** Once the work is sized as a small change or a
+project, your last round of questions includes the offer to track it in
+an issue, made as superpowers:tracking-work-in-issues says (The Offer).
+That skill also says when there is no offer.
+
 If it grows mid-task, stop, say so, and step up a size.
 
 If this is really several independent projects, say so, agree on an
 order, and brainstorm them one at a time.
 
-## Hunt for What's Missing
+## Go Deeper, Not Bigger
 
 Hunt for gaps twice: after recon (looking around, above), and before
-the write-up.
-Before you write the full description, make a deliberate pass for gaps:
-goals, edge cases, failure modes, how it's run and maintained, and what
-it touches that nobody mentioned. Bring what matters as questions with
-options and your recommendation. Settle the rest yourself, and mark each
-as your call in the description.
+the write-up. The second hunt looks for a deeper version of what they
+described, not a bigger one. Before you write the full description,
+answer these privately:
+
+1. **What would a top professional in this field do that they haven't
+   asked for?** Usually depth, not features: edge cases, failure modes,
+   how it's run and maintained, what it touches that nobody mentioned.
+2. **What raw material would they start from?** The real data, the
+   actual error, the file itself. If you've only seen a summary, look, or
+   ask for the real thing.
+3. **Which methods would they use?** Reproduce before fixing, profile
+   before optimizing, dry-run a migration before running it.
+4. **What, other than you or your human partner, would show it's
+   right?** The existing test suite, a real input with a known answer, a
+   reference implementation, a validator, a person trying it. Tests you
+   write from your own reading of the request share your misreadings;
+   they can't be the only check.
+
+Deeper is the same scope, done the way an expert would do it. An answer
+that adds scope is a non-goal or a later project: say so, and leave it
+out. Bring what would change what gets built as questions with options
+and your recommendation. Settle the rest yourself, and mark each as your
+call in the description.
+
+Match the pass to the size. A quick, clear task skips it. A small change
+gets one line in its description: how you'll check it works. A project
+gets all four, and the answer to the last goes in the written design.
 
 ## The Written Design
 
@@ -198,6 +236,8 @@ could plan from without going back to your human partner. Cover:
 - goals, non-goals, anti-goals
 - constraints
 - the parts of the how they decided, as they decided them
+- how you'll know it's right: the check from outside, and what passing
+  looks like
 - what's left to the builder
 
 **Where it goes:** in a software repo,
@@ -243,8 +283,10 @@ automated run is their approval of the full description, in chat or
 written, once the builder check's "theirs" questions are answered. Ask
 those first; they are the one stop autopilot keeps here.
 
-After a project's document is approved, the next step is the plan. For
-software, invoke superpowers:writing-plans and no other skill.
+After a project's document is approved, open the issue first if this
+work tracks one, as superpowers:tracking-work-in-issues says (Opening
+the Issue). Then the next step is the plan. For software, invoke
+superpowers:writing-plans and no other skill.
 </HARD-GATE>
 
 ## Red Flags
@@ -258,6 +300,8 @@ software, invoke superpowers:writing-plans and no other skill.
 | "I should explain the process first" | Ask your question. The process shows itself. |
 | "They said 'sounds good' to the idea" | Approval covers what you showed them. A description you haven't written isn't approved. |
 | "The spike works, I'll keep building on it" | Keeping it is a new request. Back through the gate. |
+| "An expert would add this too, so I'll put it in" | Deeper is the same scope, done better. New scope is a non-goal or a later project. |
+| "The tests I write will show it's right" | They test your reading of the request. Name a check from outside: real data, the existing suite, a person trying it. |
 
 ## Visual Companion
 
